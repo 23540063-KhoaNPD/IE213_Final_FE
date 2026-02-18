@@ -60,7 +60,7 @@ const Home = () => {
         const decoded = parseJwt(token);
         setMyId(decoded?.userId);
 
-        const newSocket = io(import.meta.env.VITE_BK_URL, {
+        const newSocket = io(import.meta.env.VITE_BK_URL || "localhost:8080", {
             auth: { token }
         });
 
