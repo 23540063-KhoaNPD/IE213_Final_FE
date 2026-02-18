@@ -60,7 +60,7 @@ const Home = () => {
         const decoded = parseJwt(token);
         setMyId(decoded?.userId);
 
-        const newSocket = io(process.env.BK_URL, {
+        const newSocket = io(import.meta.env.VITE_BK_URL, {
             auth: { token }
         });
 
