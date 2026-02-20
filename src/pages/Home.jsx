@@ -19,6 +19,7 @@ const Home = () => {
     const [myAvatar, setMyAvatar] = useState(DEFAULT_AVATAR);
     const [myId, setMyId] = useState(null);
     const [myName, setMyName] = useState("");
+    const [previewImage, setPreviewImage] = useState(null);
 
     /* ================= JWT ================= */
 
@@ -318,6 +319,12 @@ const Home = () => {
                         const isMe =
                             String(msg.Sender_id) === String(myId);
 
+                        console.log("RENDER MESSAGE:", msg);
+
+                        if (msg.Type === "Image") {
+                            console.log("IMAGE CONTENT:", msg.Content);
+                        }
+
                         return (
                             <div key={msg._id || index}>
                                 {showDate && (
@@ -341,17 +348,21 @@ const Home = () => {
 
                                         /* ===== IMAGE MESSAGE ===== */
                                         <div className={`image-message ${isMe ? "me" : "other"}`}>
-                                            <img
-                                                src={msg.Content}
-                                                alt="chat-img"
-                                                className="chat-image"
-                                            />
+
                                             <div className="msg-time">
                                                 {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
                                                     hour: "2-digit",
                                                     minute: "2-digit"
                                                 })}
                                             </div>
+
+                                            <img
+                                                src={msg.Content}
+                                                alt="chat-img"
+                                                className="chat-image"
+                                                onClick={() => setPreviewImage(msg.Content)}
+                                                style={{ cursor: "zoom-in" }}
+                                            />
                                         </div>
 
                                     ) : (
@@ -433,6 +444,27 @@ const Home = () => {
                     </div>
                 )}
             </div>
+
+            {previewImage && (
+                <div className="image-modal" onClick={() => setPreviewImage(null)}>
+                    <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <img src={previewImage} alt="preview" />
+
+                        <div className="image-modal-actions">
+                            <a
+                                href={previewImage}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Download
+                            </a>
+
+                            <button onClick={() => setPreviewImage(null)}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

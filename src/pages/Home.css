@@ -376,3 +376,52 @@
 .send-button:hover {
   background: #0b5ed7;
 }
+
+/* ===== IMAGE MODAL ===== */
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.image-modal-content {
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.image-modal-actions {
+  display: flex;
+  gap: 15px;
+}
+
+.image-modal-actions a,
+.image-modal-actions button {
+  background: #0d6efd;
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.image-modal-actions button:hover,
+.image-modal-actions a:hover {
+  background: #0b5ed7;
+}
