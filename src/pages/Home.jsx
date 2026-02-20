@@ -138,6 +138,8 @@ const Home = () => {
             message: input,
         });
 
+        // console.log("Sending:", currentRoom._id, input);
+
         setInput("");
     };
 
