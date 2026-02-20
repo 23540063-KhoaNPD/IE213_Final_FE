@@ -263,7 +263,7 @@ const Home = () => {
                                 formData.append("avatar", file);
 
                                 const res = await fetch(
-                                    `${import.meta.env.VITE_BK_URL}/upload-avatar`,
+                                    `${import.meta.env.VITE_BK_URL}/api/upload-avatar`,
                                     {
                                         method: "POST",
                                         headers: {
