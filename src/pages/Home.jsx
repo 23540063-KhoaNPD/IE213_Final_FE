@@ -18,13 +18,19 @@ const Home = () => {
     const [newRoomName, setNewRoomName] = useState("");
     const [myAvatar, setMyAvatar] = useState(DEFAULT_AVATAR);
     const [myId, setMyId] = useState(null);
+    const [myName, setMyName] = useState("");
 
     /* ================= JWT ================= */
 
     function parseJwt(token) {
         try {
-            return JSON.parse(atob(token.split(".")[1]));
-        } catch {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const binary = atob(base64);
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            const decoded = new TextDecoder("utf-8").decode(bytes);
+            return JSON.parse(decoded);
+        } catch (e) {
             return null;
         }
     }
@@ -37,11 +43,24 @@ const Home = () => {
 
         const decoded = parseJwt(token);
         setMyId(decoded?.userId);
+        setMyName(decoded?.username || "User");
+        // console.log(`check user name`,decoded?.username )
 
         const newSocket = io(
             import.meta.env.VITE_BK_URL || "http://localhost:8080",
             { auth: { token } }
         );
+
+        newSocket.on("my_profile", (profile) => {
+            if (profile?.avatar) {
+                setMyAvatar(profile.avatar);
+                localStorage.setItem("avatar", profile.avatar);
+            }
+
+            if (profile?.name) {
+                setMyName(profile.name);
+            }
+        });
 
         newSocket.emit("get_rooms");
 
@@ -244,44 +263,48 @@ const Home = () => {
                 <div className="chat-header">
                     <div>{currentRoom ? currentRoom.Room_name : "Select a room"}</div>
 
-                    <label className="avatar-upload">
-                        <img
-                            src={myAvatar}
-                            className="my-avatar"
-                            alt="my avatar"
-                            onError={(e) => (e.target.src = DEFAULT_AVATAR)}
-                        />
-                        <input
-                            type="file"
-                            hidden
-                            accept="image/*"
-                            onChange={async (e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
+                    <div className="user-info">
+                        <div className="my-name">{myName}</div>
 
-                                const formData = new FormData();
-                                formData.append("avatar", file);
+                        <label className="avatar-upload">
+                            <img
+                                src={myAvatar}
+                                className="my-avatar"
+                                alt="my avatar"
+                                onError={(e) => (e.target.src = DEFAULT_AVATAR)}
+                            />
+                            <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file) return;
 
-                                const res = await fetch(
-                                    `${import.meta.env.VITE_BK_URL}/api/upload-avatar`,
-                                    {
-                                        method: "POST",
-                                        headers: {
-                                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                                        },
-                                        body: formData,
+                                    const formData = new FormData();
+                                    formData.append("avatar", file);
+
+                                    const res = await fetch(
+                                        `${import.meta.env.VITE_BK_URL}/api/upload-avatar`,
+                                        {
+                                            method: "POST",
+                                            headers: {
+                                                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                                            },
+                                            body: formData,
+                                        }
+                                    );
+
+                                    const data = await res.json();
+
+                                    if (data.avatar) {
+                                        setMyAvatar(data.avatar);
+                                        localStorage.setItem("avatar", data.avatar);
                                     }
-                                );
-
-                                const data = await res.json();
-
-                                if (data.avatar) {
-                                    setMyAvatar(data.avatar);
-                                    localStorage.setItem("avatar", data.avatar);
-                                }
-                            }}
-                        />
-                    </label>
+                                }}
+                            />
+                        </label>
+                    </div>
                 </div>
 
                 <div className="chat-messages">
@@ -304,8 +327,7 @@ const Home = () => {
                                 )}
 
                                 <div
-                                    className={`chat-message-wrapper ${isMe ? "me" : "other"
-                                        }`}
+                                    className={`chat-message-wrapper ${isMe ? "me" : "other"}`}
                                 >
                                     {!isMe && (
                                         <img
@@ -315,25 +337,46 @@ const Home = () => {
                                         />
                                     )}
 
-                                    <div
-                                        className={`chat-message ${isMe ? "me" : "other"
-                                            }`}
-                                    >
-                                        {!isMe && (
-                                            <div className="msg-header">
-                                                {msg.Sender_name || "User"}
+                                    {msg.Type === "Image" ? (
+
+                                        /* ===== IMAGE MESSAGE ===== */
+                                        <div className={`image-message ${isMe ? "me" : "other"}`}>
+                                            <img
+                                                src={msg.Content}
+                                                alt="chat-img"
+                                                className="chat-image"
+                                            />
+                                            <div className="msg-time">
+                                                {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit"
+                                                })}
                                             </div>
-                                        )}
-
-                                        <div>{msg.Content}</div>
-
-                                        <div className="msg-time">
-                                            {new Date(msg.Timestamp).toLocaleTimeString(
-                                                "vi-VN",
-                                                { hour: "2-digit", minute: "2-digit" }
-                                            )}
                                         </div>
-                                    </div>
+
+                                    ) : (
+
+                                        /* ===== TEXT MESSAGE ===== */
+                                        <div
+                                            className={`chat-message ${isMe ? "me" : "other"}`}
+                                        >
+                                            {!isMe && (
+                                                <div className="msg-header">
+                                                    {msg.Sender_name || "User"}
+                                                </div>
+                                            )}
+
+                                            <div>{msg.Content}</div>
+
+                                            <div className="msg-time">
+                                                {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
+                                                    hour: "2-digit",
+                                                    minute: "2-digit"
+                                                })}
+                                            </div>
+                                        </div>
+
+                                    )}
                                 </div>
                             </div>
                         );
@@ -344,12 +387,48 @@ const Home = () => {
 
                 {currentRoom && (
                     <div className="chat-input-area">
+
+                        <label className="image-upload-btn">
+                            📷
+                            <input
+                                type="file"
+                                hidden
+                                accept="image/*"
+                                onChange={async (e) => {
+                                    const file = e.target.files[0];
+                                    if (!file || !currentRoom) return;
+
+                                    const formData = new FormData();
+                                    formData.append("image", file);
+                                    formData.append("roomId", currentRoom._id);
+
+                                    const res = await fetch(
+                                        `${import.meta.env.VITE_BK_URL}/api/upload-message`,
+                                        {
+                                            method: "POST",
+                                            headers: {
+                                                Authorization: `Bearer ${localStorage.getItem("token")}`
+                                            },
+                                            body: formData
+                                        }
+                                    );
+
+                                    const data = await res.json();
+
+                                    if (data.message) {
+                                        socket.emit("image_msg", data.message);
+                                    }
+                                }}
+                            />
+                        </label>
+
                         <input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                             placeholder="Type message..."
                         />
+
                         <button onClick={sendMessage}>Send</button>
                     </div>
                 )}

@@ -24,6 +24,12 @@ export default function Login() {
         }
       );
 
+      // const text = await res.text();
+      // console.log("RAW RESPONSE:", text);
+
+      // const data1 = JSON.parse(text);
+      // console.log("PARSED:", data1);
+
       if (!res.ok) {
         alert("Login failed");
         return;

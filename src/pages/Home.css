@@ -198,20 +198,29 @@
 }
 
 /* MESSAGE CỦA MÌNH */
+/* ===== TEXT MESSAGE ===== */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.my-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+}
+
 
 .chat-message.me {
   background: #2563eb;
-  color: #ffffff;
-  border-bottom-right-radius: 4px;
+  color: white;
 }
 
-/* MESSAGE NGƯỜI KHÁC */
-
 .chat-message.other {
-  background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
-  border-bottom-left-radius: 4px;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .msg-header {
@@ -259,6 +268,41 @@
   font-size: 12px;
   color: #888;
   margin: 15px 0;
+}
+
+/* ===== IMAGE MESSAGE ===== */
+.image-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 240px;
+}
+
+.image-message.me {
+  align-items: flex-end;
+}
+
+.image-message.other {
+  align-items: flex-start;
+}
+
+.chat-image {
+  max-width: 220px;
+  border-radius: 10px;
+  margin-top: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+  background: transparent;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.chat-image:hover {
+  transform: scale(1.03);
+}
+
+.image-upload-btn {
+  cursor: pointer;
+  font-size: 18px;
+  margin-right: 10px;
 }
 
 /* ===== INPUT ===== */
