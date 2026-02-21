@@ -158,15 +158,62 @@ const Home = () => {
         socket.emit("delete_room", { roomId });
     };
 
-    const updateRoom = (room) => {
+    const updateRoom = async (room) => {
         if (!socket) return;
+
         const newName = prompt("Enter new room name:", room.Room_name);
         if (!newName || !newName.trim()) return;
 
-        socket.emit("update_room", {
-            roomId: room._id,
-            newName: newName.trim(),
-        });
+        const useImage = window.confirm("Use image background? (Cancel = use color)");
+
+        let newBackground = room.room_bg;
+
+        if (useImage) {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append("image", file);
+
+                const res = await fetch(
+                    `${import.meta.env.VITE_BK_URL}/api/upload-room-bg`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`
+                        },
+                        body: formData
+                    }
+                );
+
+                const data = await res.json();
+
+                if (data.imageUrl) {
+                    socket.emit("update_room", {
+                        roomId: room._id,
+                        newName: newName.trim(),
+                        newBackground: data.imageUrl
+                    });
+                }
+            };
+
+            input.click();
+
+        } else {
+            const color = prompt("Enter background color (hex or name):", "#0d6efd");
+            if (!color) return;
+
+            socket.emit("update_room", {
+                roomId: room._id,
+                newName: newName.trim(),
+                newBackground: color
+            });
+        }
     };
 
     /* ================= MESSAGE ================= */
@@ -405,11 +452,11 @@ const Home = () => {
                         const isMe =
                             String(msg.Sender_id) === String(myId);
 
-                        console.log("RENDER MESSAGE:", msg);
+                        // console.log("RENDER MESSAGE:", msg);
 
-                        if (msg.Type === "Image") {
-                            console.log("IMAGE CONTENT:", msg.Content);
-                        }
+                        // if (msg.Type === "Image") {
+                        //     console.log("IMAGE CONTENT:", msg.Content);
+                        // }
 
                         return (
                             <div key={`${msg._id}-${msg.Edited}`}>
