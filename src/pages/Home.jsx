@@ -77,12 +77,12 @@ const Home = () => {
             setMessages((prev) => [...prev, msg]);
         });
 
-        newSocket.on("my_profile", (profile) => {
-            if (profile?.avatar) {
-                setMyAvatar(profile.avatar);
-                localStorage.setItem("avatar", profile.avatar);
-            }
-        });
+        // newSocket.on("my_profile", (profile) => {
+        //     if (profile?.avatar) {
+        //         setMyAvatar(profile.avatar);
+        //         localStorage.setItem("avatar", profile.avatar);
+        //     }
+        // });
 
         newSocket.on("avatar_updated", ({ userId, avatar }) => {
             if (String(userId) === String(myId)) {
@@ -100,14 +100,15 @@ const Home = () => {
 
         /* ===== MESSAGE UPDATE ===== */
         newSocket.on("message_updated", (updatedMsg) => {
-    setMessages((prev) =>
-        prev.map((msg) =>
-            String(msg._id) === String(updatedMsg._id)
-                ? { ...msg, ...updatedMsg }
-                : msg
-        )
-    );
-});
+
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg._id.toString() === updatedMsg._id.toString()
+                        ? { ...updatedMsg }   // 🔥 dùng toàn bộ object mới
+                        : msg
+                )
+            );
+        });
 
         /* ===== MESSAGE DELETE ===== */
         newSocket.on("message_deleted", ({ messageId }) => {
@@ -193,17 +194,59 @@ const Home = () => {
         });
     };
 
-    const updateMessage = (msg) => {
-        if (!socket) return;
+    const updateMessage = async (msg) => {
+        if (!socket || !currentRoom) return;
 
-        const newContent = prompt("Edit message:", msg.Content);
-        if (!newContent || !newContent.trim()) return;
+        /* ===== TEXT MESSAGE ===== */
+        if (msg.Type !== "Image") {
+            const newContent = prompt("Edit message:", msg.Content);
+            if (!newContent || !newContent.trim()) return;
 
-        socket.emit("update_message", {
-            messageId: msg._id,
-            newContent: newContent.trim(),
-            roomId: currentRoom._id
-        });
+            socket.emit("update_message", {
+                messageId: msg._id,
+                newContent: newContent.trim(),
+                roomId: currentRoom._id
+            });
+
+            return;
+        }
+
+        /* ===== IMAGE MESSAGE ===== */
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("image", file);
+            formData.append("roomId", currentRoom._id); // 🔥 THÊM DÒNG NÀY
+
+            const res = await fetch(
+                `${import.meta.env.VITE_BK_URL}/api/upload-image`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`
+                    },
+                    body: formData
+                }
+            );
+
+            const data = await res.json();
+
+            if (data.imageUrl) {
+                socket.emit("update_message", {
+                    messageId: msg._id,
+                    newContent: data.imageUrl,
+                    roomId: currentRoom._id
+                });
+            }
+        };
+
+        input.click();
     };
 
     const formatDate = (dateString) => {
@@ -369,7 +412,7 @@ const Home = () => {
                         }
 
                         return (
-                            <div key={msg._id || index}>
+                            <div key={`${msg._id}-${msg.Edited}`}>
                                 {showDate && (
                                     <div className="date-separator">
                                         {formatDate(msg.Timestamp)}
@@ -392,6 +435,30 @@ const Home = () => {
                                         /* ===== IMAGE MESSAGE ===== */
                                         <div className={`image-message ${isMe ? "me" : "other"}`}>
 
+                                            <img
+                                                src={`${msg.Content}?v=${msg.Edited ? msg.Timestamp : ""}`}
+                                                alt="chat-img"
+                                                className="chat-image"
+                                                onClick={() => setPreviewImage(msg.Content)}
+                                            />
+
+                                            {isMe && (
+                                                <div className="msg-actions">
+                                                    <span
+                                                        className="msg-edit"
+                                                        onClick={() => updateMessage(msg)}
+                                                    >
+                                                        ✏
+                                                    </span>
+                                                    <span
+                                                        className="msg-delete"
+                                                        onClick={() => deleteMessage(msg._id)}
+                                                    >
+                                                        🗑
+                                                    </span>
+                                                </div>
+                                            )}
+
                                             <div className="msg-time">
                                                 {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
                                                     hour: "2-digit",
@@ -399,13 +466,6 @@ const Home = () => {
                                                 })}
                                             </div>
 
-                                            <img
-                                                src={msg.Content}
-                                                alt="chat-img"
-                                                className="chat-image"
-                                                onClick={() => setPreviewImage(msg.Content)}
-                                                style={{ cursor: "zoom-in" }}
-                                            />
                                         </div>
 
                                     ) : (
