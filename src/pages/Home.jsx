@@ -98,9 +98,29 @@ const Home = () => {
             );
         });
 
+        /* ===== MESSAGE UPDATE ===== */
+        newSocket.on("message_updated", (updatedMsg) => {
+    setMessages((prev) =>
+        prev.map((msg) =>
+            String(msg._id) === String(updatedMsg._id)
+                ? { ...msg, ...updatedMsg }
+                : msg
+        )
+    );
+});
+
+        /* ===== MESSAGE DELETE ===== */
+        newSocket.on("message_deleted", ({ messageId }) => {
+            setMessages((prev) =>
+                prev.filter((msg) => String(msg._id) !== String(messageId))
+            );
+        });
+
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [navigate]);
+
+
 
     /* ================= LOAD AVATAR ================= */
 
@@ -161,6 +181,29 @@ const Home = () => {
         // console.log("Sending:", currentRoom._id, input);
 
         setInput("");
+    };
+
+    const deleteMessage = (messageId) => {
+        if (!socket) return;
+        if (!window.confirm("Delete this message?")) return;
+
+        socket.emit("delete_message", {
+            messageId,
+            roomId: currentRoom._id
+        });
+    };
+
+    const updateMessage = (msg) => {
+        if (!socket) return;
+
+        const newContent = prompt("Edit message:", msg.Content);
+        if (!newContent || !newContent.trim()) return;
+
+        socket.emit("update_message", {
+            messageId: msg._id,
+            newContent: newContent.trim(),
+            roomId: currentRoom._id
+        });
     };
 
     const formatDate = (dateString) => {
@@ -379,12 +422,34 @@ const Home = () => {
 
                                             <div>{msg.Content}</div>
 
+                                            {msg.Edited && (
+                                                <div className="edited-label">(edited)</div>
+                                            )}
+
                                             <div className="msg-time">
                                                 {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
                                                     hour: "2-digit",
                                                     minute: "2-digit"
                                                 })}
                                             </div>
+
+                                            {/* ===== ACTION BUTTONS (only my message) ===== */}
+                                            {isMe && (
+                                                <div className="msg-actions">
+                                                    <span
+                                                        className="msg-edit"
+                                                        onClick={() => updateMessage(msg)}
+                                                    >
+                                                        ✏
+                                                    </span>
+                                                    <span
+                                                        className="msg-delete"
+                                                        onClick={() => deleteMessage(msg._id)}
+                                                    >
+                                                        🗑
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
 
                                     )}

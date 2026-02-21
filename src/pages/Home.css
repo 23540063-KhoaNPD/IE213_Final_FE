@@ -425,3 +425,23 @@
 .image-modal-actions a:hover {
   background: #0b5ed7;
 }
+
+.msg-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.msg-actions span:hover {
+    opacity: 1;
+}
+
+.edited-label {
+    font-size: 11px;
+    opacity: 0.6;
+    font-style: italic;
+}
