@@ -16,6 +16,8 @@ export default function ForgotPassword() {
     }
 
     try {
+      console.log('BK_URL: ', backendUrl);
+
       const res = await fetch(
         `${backendUrl}/api/users/request-reset`,
         {
