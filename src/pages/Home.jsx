@@ -3,11 +3,22 @@ import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 
+import { useLayoutEffect } from "react";
+
 const DEFAULT_AVATAR = "/default-avatar.png";
 
 const Home = () => {
     const navigate = useNavigate();
     const bottomRef = useRef(null);
+
+    const messagesRef = useRef(null);
+    const shouldAutoScroll = useRef(true);
+
+    const logout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("avatar");
+        navigate("/");
+    };
 
     const [socket, setSocket] = useState(null);
     const [rooms, setRooms] = useState([]);
@@ -20,6 +31,17 @@ const Home = () => {
     const [myId, setMyId] = useState(null);
     const [myName, setMyName] = useState("");
     const [previewImage, setPreviewImage] = useState(null);
+
+    const checkIfNearBottom = () => {
+        const el = messagesRef.current;
+        if (!el) return;
+
+        const threshold = 100; // px
+        const isNearBottom =
+            el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+
+        shouldAutoScroll.current = isNearBottom;
+    };
 
     /* ================= JWT ================= */
 
@@ -36,21 +58,57 @@ const Home = () => {
         }
     }
 
+    function isTokenValid(token) {
+        const decoded = parseJwt(token);
+        if (!decoded) return false;
+
+        if (!decoded.exp) return false;
+
+        const currentTime = Date.now() / 1000; // đổi sang giây
+
+        return decoded.exp > currentTime;
+    }
+
+    useEffect(() => {
+        const el = messagesRef.current;
+        if (!el) return;
+
+        el.addEventListener("scroll", checkIfNearBottom);
+
+        return () => {
+            el.removeEventListener("scroll", checkIfNearBottom);
+        };
+    }, []);
+
     /* ================= SOCKET INIT ================= */
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        if (!token) return navigate("/");
+
+        if (!token) {
+            logout();
+            return;
+        }
+
+        if (!isTokenValid(token)) {
+            logout();
+            return;
+        }
 
         const decoded = parseJwt(token);
         setMyId(decoded?.userId);
         setMyName(decoded?.username || "User");
-        // console.log(`check user name`,decoded?.username )
 
         const newSocket = io(
             import.meta.env.VITE_BK_URL || "http://localhost:8080",
             { auth: { token } }
         );
+
+        newSocket.on("connect_error", (err) => {
+            if (err.message === "Unauthorized") {
+                logout();
+            }
+        });
 
         newSocket.on("my_profile", (profile) => {
             if (profile?.avatar) {
@@ -132,9 +190,16 @@ const Home = () => {
 
     /* ================= AUTO SCROLL ================= */
 
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    useLayoutEffect(() => {
+        const el = messagesRef.current;
+        if (!el) return;
+
+        if (shouldAutoScroll.current) {
+            el.scrollTop = el.scrollHeight;
+        }
     }, [messages]);
+
+
 
     /* ================= ROOM ================= */
 
@@ -231,6 +296,40 @@ const Home = () => {
         setInput("");
     };
 
+    const sendImage = async (file) => {
+        if (!file || !currentRoom || !socket) return;
+
+        const formData = new FormData();
+        formData.append("image", file);
+        formData.append("roomId", currentRoom._id);
+
+        const res = await fetch(
+            `${import.meta.env.VITE_BK_URL}/api/upload-image`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                },
+                body: formData
+            }
+        );
+
+        if (res.status === 401) {
+            logout();
+            return;
+        }
+
+        const data = await res.json();
+
+        if (data.imageUrl) {
+            socket.emit("send_msg", {
+                roomId: currentRoom._id,
+                message: data.imageUrl,
+                type: "Image"
+            });
+        }
+    };
+
     const deleteMessage = (messageId) => {
         if (!socket) return;
         if (!window.confirm("Delete this message?")) return;
@@ -244,8 +343,13 @@ const Home = () => {
     const updateMessage = async (msg) => {
         if (!socket || !currentRoom) return;
 
-        /* ===== TEXT MESSAGE ===== */
-        if (msg.Type !== "Image") {
+        const isImageMessage =
+            msg.Type === "Image" ||
+            (typeof msg.Content === "string" &&
+                msg.Content.startsWith("http"));
+
+        /* ================= TEXT ================= */
+        if (!isImageMessage) {
             const newContent = prompt("Edit message:", msg.Content);
             if (!newContent || !newContent.trim()) return;
 
@@ -258,42 +362,52 @@ const Home = () => {
             return;
         }
 
-        /* ===== IMAGE MESSAGE ===== */
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
+        /* ================= IMAGE ================= */
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
 
-        input.onchange = async (e) => {
+        fileInput.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            const formData = new FormData();
-            formData.append("image", file);
-            formData.append("roomId", currentRoom._id); // 🔥 THÊM DÒNG NÀY
+            try {
+                const formData = new FormData();
+                formData.append("image", file);
+                formData.append("roomId", currentRoom._id);
 
-            const res = await fetch(
-                `${import.meta.env.VITE_BK_URL}/api/upload-image`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-                    },
-                    body: formData
+                const res = await fetch(
+                    `${import.meta.env.VITE_BK_URL}/api/upload-image`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`
+                        },
+                        body: formData
+                    }
+                );
+
+                if (res.status === 401) {
+                    logout();
+                    return;
                 }
-            );
 
-            const data = await res.json();
+                const data = await res.json();
 
-            if (data.imageUrl) {
-                socket.emit("update_message", {
-                    messageId: msg._id,
-                    newContent: data.imageUrl,
-                    roomId: currentRoom._id
-                });
+                if (data.imageUrl) {
+                    socket.emit("update_message", {
+                        messageId: msg._id,
+                        newContent: data.imageUrl,
+                        roomId: currentRoom._id
+                    });
+                }
+
+            } catch (err) {
+                console.error("Upload failed:", err);
             }
         };
 
-        input.click();
+        fileInput.click();
     };
 
     const formatDate = (dateString) => {
@@ -321,286 +435,370 @@ const Home = () => {
     /* ================= RENDER ================= */
 
     return (
-        <div className="home-container">
-            {/* ================= ROOM COLUMN ================= */}
-            <div className="room-column">
-                <h4 className="room-title">Rooms</h4>
+
+        <div className="messenger-layout">
+
+            {/* ===== SIDEBAR ===== */}
+
+            <div className="sidebar">
+
+                <div className="sidebar-header">
+
+                    Chats
+
+                </div>
 
                 <div
-                    className="room-item create-room-item"
+                    className="create-room"
                     onClick={() => setShowCreate(!showCreate)}
                 >
-                    <div className="room-overlay center">+ Create Room</div>
+                    + Create Room
                 </div>
 
                 {showCreate && (
+
                     <div className="create-room-box">
+
                         <input
-                            type="text"
                             placeholder="Room name..."
                             value={newRoomName}
                             onChange={(e) => setNewRoomName(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && createRoom()}
                         />
-                        <button onClick={createRoom}>Create</button>
+
+                        <button onClick={createRoom}>
+                            Create
+                        </button>
+
                     </div>
+
                 )}
 
-                {rooms.map((room) => {
-                    const isImage =
-                        room.room_bg &&
-                        (room.room_bg.startsWith("http") ||
-                            room.room_bg.startsWith("/"));
+                <div className="room-list">
 
-                    const style = isImage
-                        ? { backgroundImage: `url(${room.room_bg})` }
-                        : { backgroundColor: room.room_bg || "#0d6efd" };
+                    {rooms.map(room => {
 
-                    return (
-                        <div
-                            key={room._id}
-                            className={`room-item ${currentRoom?._id === room._id ? "active" : ""
-                                }`}
-                            style={style}
-                            onClick={() => joinRoom(room)}
-                        >
-                            <div className="room-name">{room.Room_name}</div>
+                        const isImage =
+                            room.room_bg &&
+                            (room.room_bg.startsWith("http")
+                                || room.room_bg.startsWith("/"));
 
-                            <div className="room-actions">
-                                <div
-                                    className="room-btn delete-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteRoom(room._id);
-                                    }}
-                                >
-                                    ✕
+                        const style = isImage
+                            ? {
+                                backgroundImage: `url(${room.room_bg})`,
+                                backgroundSize: "cover"
+                            }
+                            : {
+                                backgroundColor:
+                                    room.room_bg || "#0084ff"
+                            };
+
+                        return (
+
+                            <div
+                                key={room._id}
+                                className={`room-item ${currentRoom?._id === room._id ? "active" : ""
+                                    }`}
+                                onClick={() => joinRoom(room)}
+                            >
+
+
+                                <div className="room-avatar">
+
+                                    <img
+                                        src={
+                                            room.room_bg &&
+                                                (room.room_bg.startsWith("http") ||
+                                                    room.room_bg.startsWith("/"))
+                                                ? room.room_bg
+                                                : DEFAULT_AVATAR
+                                        }
+                                    />
+
                                 </div>
 
-                                <div
-                                    className="room-btn edit-btn"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateRoom(room);
-                                    }}
-                                >
-                                    ✏
+                                <div className="room-info">
+
+                                    <div className="room-name">
+
+                                        {room.Room_name}
+
+                                    </div>
+
+                                    <div className="room-actions">
+
+                                        <div className="room-actions">
+                                            <button
+                                                className="action-btn edit"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    updateRoom(room);
+                                                }}
+                                            >
+                                                ✎
+                                            </button>
+
+                                            <button
+                                                className="action-btn delete"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteRoom(room._id);
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+
+                                    </div>
+
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+
+                        );
+
+                    })}
+
+                </div>
+
             </div>
 
-            {/* ================= CHAT COLUMN ================= */}
-            <div className="chat-column">
-                <div className="chat-header">
-                    <div>{currentRoom ? currentRoom.Room_name : "Select a room"}</div>
 
-                    <div className="user-info">
-                        <div className="my-name">{myName}</div>
 
-                        <label className="avatar-upload">
+            {/* ===== CHAT ===== */}
+
+            <div className="chat">
+
+                {/* HEADER */}
+
+                <div className="chat-top">
+
+                    <div>
+
+                        {currentRoom
+                            ? currentRoom.Room_name
+                            : "Select a room"}
+
+                    </div>
+
+                    <div className="profile">
+
+                        <span>
+
+                            {myName}
+
+                        </span>
+
+                        <label>
+
                             <img
                                 src={myAvatar}
-                                className="my-avatar"
-                                alt="my avatar"
-                                onError={(e) => (e.target.src = DEFAULT_AVATAR)}
+                                className="avatar"
+                                alt="avatar"
+                                onError={(e) =>
+                                    e.target.src = DEFAULT_AVATAR
+                                }
                             />
+
                             <input
+
                                 type="file"
+
                                 hidden
+
                                 accept="image/*"
+
                                 onChange={async (e) => {
+
                                     const file = e.target.files[0];
+
                                     if (!file) return;
 
                                     const formData = new FormData();
+
                                     formData.append("avatar", file);
 
                                     const res = await fetch(
+
                                         `${import.meta.env.VITE_BK_URL}/api/upload-avatar`,
+
                                         {
+
                                             method: "POST",
+
                                             headers: {
-                                                Authorization: `Bearer ${localStorage.getItem("token")}`,
+
+                                                Authorization:
+                                                    `Bearer ${localStorage.getItem("token")}`
+
                                             },
-                                            body: formData,
+
+                                            body: formData
+
                                         }
+
                                     );
 
                                     const data = await res.json();
 
                                     if (data.avatar) {
+
                                         setMyAvatar(data.avatar);
-                                        localStorage.setItem("avatar", data.avatar);
+
+                                        localStorage.setItem(
+                                            "avatar",
+                                            data.avatar
+                                        );
+
                                     }
+
                                 }}
+
                             />
+
                         </label>
+
                     </div>
+
                 </div>
 
-                <div className="chat-messages">
+
+
+                {/* ===== MESSAGE AREA ===== */}
+
+                <div className="messages" ref={messagesRef}>
+
                     {messages.map((msg, index) => {
-                        const previousMsg = messages[index - 1];
-                        const showDate = isDifferentDay(
-                            msg.Timestamp,
-                            previousMsg?.Timestamp
-                        );
+
+                        // console.log("MSG OBJECT:", msg);
+
+                        const previousMsg =
+                            messages[index - 1];
+
+                        const showDate =
+                            isDifferentDay(
+                                msg.Timestamp,
+                                previousMsg?.Timestamp
+                            );
 
                         const isMe =
-                            String(msg.Sender_id) === String(myId);
-
-                        // console.log("RENDER MESSAGE:", msg);
-
-                        // if (msg.Type === "Image") {
-                        //     console.log("IMAGE CONTENT:", msg.Content);
-                        // }
+                            String(msg.Sender_id)
+                            === String(myId);
 
                         return (
+
                             <div key={`${msg._id}-${msg.Edited}`}>
+
                                 {showDate && (
-                                    <div className="date-separator">
+
+                                    <div className="date">
+
                                         {formatDate(msg.Timestamp)}
+
                                     </div>
+
                                 )}
 
-                                <div
-                                    className={`chat-message-wrapper ${isMe ? "me" : "other"}`}
-                                >
+                                <div className={`message-row ${isMe ? "me" : "other"}`}>
+
+                                    {/* ===== TIME LEFT (CHỈ HIỆN VỚI isMe) ===== */}
+                                    {isMe && (
+                                        <div className="time time-left">
+                                            {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
+                                                hour: "2-digit",
+                                                minute: "2-digit"
+                                            })}
+                                        </div>
+                                    )}
+
                                     {!isMe && (
                                         <img
-                                            className="chat-avatar"
+                                            className="msg-avatar"
                                             src={msg.Sender_avatar || DEFAULT_AVATAR}
                                             alt="avatar"
                                         />
                                     )}
 
-                                    {msg.Type === "Image" ? (
+                                    <div className={`bubble ${isMe ? "me" : "other"}`}>
 
-                                        /* ===== IMAGE MESSAGE ===== */
-                                        <div className={`image-message ${isMe ? "me" : "other"}`}>
+                                        {!isMe && (
+                                            <div className="sender">
+                                                {msg.Sender_name || "User"}
+                                            </div>
+                                        )}
 
+                                        {msg.Type === "Image" || msg.Content.startsWith("http") ? (
                                             <img
-                                                src={`${msg.Content}?v=${msg.Edited ? msg.Timestamp : ""}`}
-                                                alt="chat-img"
-                                                className="chat-image"
+                                                src={msg.Content}
+                                                className="msg-img"
+                                                alt="chat"
                                                 onClick={() => setPreviewImage(msg.Content)}
                                             />
-
-                                            {isMe && (
-                                                <div className="msg-actions">
-                                                    <span
-                                                        className="msg-edit"
-                                                        onClick={() => updateMessage(msg)}
-                                                    >
-                                                        ✏
-                                                    </span>
-                                                    <span
-                                                        className="msg-delete"
-                                                        onClick={() => deleteMessage(msg._id)}
-                                                    >
-                                                        🗑
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            <div className="msg-time">
-                                                {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit"
-                                                })}
+                                        ) : (
+                                            <div className="text-content">
+                                                {msg.Content}
                                             </div>
+                                        )}
 
-                                        </div>
+                                        {isMe && (
+                                            <div className="message-actions">
+                                                <button
+                                                    className="action-btn edit"
+                                                    onClick={() => updateMessage(msg)}
+                                                >
+                                                    ✎
+                                                </button>
 
-                                    ) : (
-
-                                        /* ===== TEXT MESSAGE ===== */
-                                        <div
-                                            className={`chat-message ${isMe ? "me" : "other"}`}
-                                        >
-                                            {!isMe && (
-                                                <div className="msg-header">
-                                                    {msg.Sender_name || "User"}
-                                                </div>
-                                            )}
-
-                                            <div>{msg.Content}</div>
-
-                                            {msg.Edited && (
-                                                <div className="edited-label">(edited)</div>
-                                            )}
-
-                                            <div className="msg-time">
-                                                {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit"
-                                                })}
+                                                <button
+                                                    className="action-btn delete"
+                                                    onClick={() => deleteMessage(msg._id)}
+                                                >
+                                                    ✕
+                                                </button>
                                             </div>
+                                        )}
 
-                                            {/* ===== ACTION BUTTONS (only my message) ===== */}
-                                            {isMe && (
-                                                <div className="msg-actions">
-                                                    <span
-                                                        className="msg-edit"
-                                                        onClick={() => updateMessage(msg)}
-                                                    >
-                                                        ✏
-                                                    </span>
-                                                    <span
-                                                        className="msg-delete"
-                                                        onClick={() => deleteMessage(msg._id)}
-                                                    >
-                                                        🗑
-                                                    </span>
-                                                </div>
-                                            )}
+                                    </div>
+
+                                    {/* ===== TIME RIGHT (CHỈ HIỆN VỚI OTHER) ===== */}
+                                    {!isMe && (
+                                        <div className="time time-right">
+                                            {new Date(msg.Timestamp).toLocaleTimeString("vi-VN", {
+                                                hour: "2-digit",
+                                                minute: "2-digit"
+                                            })}
                                         </div>
-
                                     )}
+
                                 </div>
+
                             </div>
+
                         );
+
                     })}
 
                     <div ref={bottomRef}></div>
+
                 </div>
 
-                {currentRoom && (
-                    <div className="chat-input-area">
 
-                        <label className="image-upload-btn">
+
+                {/* ===== INPUT ===== */}
+
+                {currentRoom && (
+
+                    <div className="input-area">
+
+                        {/* ICON CHỌN ẢNH */}
+                        <label className="image-upload">
                             📷
                             <input
                                 type="file"
                                 hidden
                                 accept="image/*"
-                                onChange={async (e) => {
+                                onChange={(e) => {
                                     const file = e.target.files[0];
-                                    if (!file || !currentRoom) return;
-
-                                    const formData = new FormData();
-                                    formData.append("image", file);
-                                    formData.append("roomId", currentRoom._id);
-
-                                    const res = await fetch(
-                                        `${import.meta.env.VITE_BK_URL}/api/upload-message`,
-                                        {
-                                            method: "POST",
-                                            headers: {
-                                                Authorization: `Bearer ${localStorage.getItem("token")}`
-                                            },
-                                            body: formData
-                                        }
-                                    );
-
-                                    const data = await res.json();
-
-                                    if (data.message) {
-                                        socket.emit("image_msg", data.message);
-                                    }
+                                    if (file) sendImage(file);
                                 }}
                             />
                         </label>
@@ -609,35 +807,69 @@ const Home = () => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                            placeholder="Type message..."
+                            placeholder="Aa"
                         />
 
-                        <button onClick={sendMessage}>Send</button>
+                        <button onClick={sendMessage}>
+                            ➤
+                        </button>
+
                     </div>
+
                 )}
+
             </div>
 
+
+
+            {/* IMAGE PREVIEW */}
+
             {previewImage && (
-                <div className="image-modal" onClick={() => setPreviewImage(null)}>
-                    <div className="image-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <img src={previewImage} alt="preview" />
 
-                        <div className="image-modal-actions">
-                            <a
-                                href={previewImage}
-                                download
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Download
-                            </a>
+                <div
 
-                            <button onClick={() => setPreviewImage(null)}>Close</button>
-                        </div>
+                    className="image-modal"
+
+                    onClick={() => setPreviewImage(null)}
+
+                >
+
+                    <div
+
+                        className="image-modal-content"
+
+                        onClick={(e) => e.stopPropagation()}
+
+                    >
+
+                        <img
+
+                            src={previewImage}
+
+                            alt="preview"
+
+                        />
+
+                        <button
+
+                            className="close-preview"
+
+                            onClick={() => setPreviewImage(null)}
+
+                        >
+
+                            ✕
+
+                        </button>
+
                     </div>
+
                 </div>
+
             )}
+
         </div>
+
     );
 };
 

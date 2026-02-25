@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Login.css";
+import "./Auth.css";
 
 export default function Login() {
-
   const navigate = useNavigate();
 
   const [isLogin, setIsLogin] = useState(true);
@@ -12,9 +11,7 @@ export default function Login() {
   const [PW, setPW] = useState("");
 
   const handleSubmit = async () => {
-
     if (isLogin) {
-      // LOGIN
       const res = await fetch(
         `${import.meta.env.VITE_BK_URL}/api/users/login`,
         {
@@ -23,12 +20,6 @@ export default function Login() {
           body: JSON.stringify({ Email, PW })
         }
       );
-
-      // const text = await res.text();
-      // console.log("RAW RESPONSE:", text);
-
-      // const data1 = JSON.parse(text);
-      // console.log("PARSED:", data1);
 
       if (!res.ok) {
         alert("Login failed");
@@ -42,9 +33,7 @@ export default function Login() {
       localStorage.setItem("userId", data.userId);
 
       navigate("/home");
-
     } else {
-      // SIGNUP
       const res = await fetch(
         `${import.meta.env.VITE_BK_URL}/api/users/signup`,
         {
@@ -63,17 +52,16 @@ export default function Login() {
         return;
       }
 
-      alert("Signup successful. Please login.");
+      alert("Account created. Please login.");
       setIsLogin(true);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-
-        <h2 className="login-title">
-          {isLogin ? "Login" : "Sign Up"}
+    <div className="auth-container">
+      <div className="auth-box">
+        <h2 className="auth-title">
+          {isLogin ? "Login" : "Create Account"}
         </h2>
 
         {!isLogin && (
@@ -97,27 +85,30 @@ export default function Login() {
           placeholder="Password"
           value={PW}
           onChange={(e) => setPW(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSubmit();
-          }}
+          onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
         />
 
-        <button
-          className="login-button"
-          onClick={handleSubmit}
-        >
-          {isLogin ? "Login" : "Create Account"}
+        <button className="auth-button" onClick={handleSubmit}>
+          {isLogin ? "Login" : "Sign Up"}
         </button>
 
+        {isLogin && (
+          <div
+            className="auth-link"
+            onClick={() => navigate("/forgot-password")}
+          >
+            Forgot password?
+          </div>
+        )}
+
         <div
-          className="signup-link"
+          className="auth-link"
           onClick={() => setIsLogin(!isLogin)}
         >
           {isLogin
             ? "Don't have an account? Sign up"
             : "Already have an account? Login"}
         </div>
-
       </div>
     </div>
   );
