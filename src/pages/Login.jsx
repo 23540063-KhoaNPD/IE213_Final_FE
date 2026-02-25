@@ -12,11 +12,14 @@ export default function Login() {
   const [PW, setPW] = useState("");
   const [checkingServer, setCheckingServer] = useState(true);
 
+  const backendUrl =
+    import.meta.env.VITE_BK_URL || "http://localhost:8080";
+
   // ✅ CHECK SERVER ALIVE
   useEffect(() => {
     const checkServer = async () => {
       try {
-        await axios.get("/health");
+        await axios.get(`${backendUrl}/api/health`);
         setCheckingServer(false);
       } catch (error) {
         console.error("Server không phản hồi:", error);
