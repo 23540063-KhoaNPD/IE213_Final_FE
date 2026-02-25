@@ -8,7 +8,7 @@ export default function ForgotPassword() {
 
   // 🔥 Fallback backend URL nếu không có biến môi trường
   const backendUrl =
-    import.meta.env.VITE_BK_URL?.trim() || "http://localhost:3000";
+    import.meta.env.VITE_BK_URL || "http://localhost:3000";
 
   const handleSubmit = async () => {
     if (!email) {
