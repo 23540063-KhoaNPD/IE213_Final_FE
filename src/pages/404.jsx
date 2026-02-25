@@ -7,8 +7,8 @@ const NotFound = () => {
   return (
     <div style={{ textAlign: "center", marginTop: "100px" }}>
       <h1>404</h1>
-      <h2>Server không phản hồi</h2>
-      <p>Vui lòng kiểm tra lại kết nối hoặc thử lại sau.</p>
+      <h2>Server is not available</h2>
+      <p>Please check back later</p>
 
       <button
         onClick={() => navigate("/login")}
@@ -18,7 +18,7 @@ const NotFound = () => {
           cursor: "pointer"
         }}
       >
-        Quay lại Login
+        Back to Login
       </button>
     </div>
   );
