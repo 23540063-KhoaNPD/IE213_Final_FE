@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "../services/axiosInstance";
 import "./Auth.css";
 
 export default function Login() {
@@ -9,51 +10,59 @@ export default function Login() {
   const [name, setName] = useState("");
   const [Email, setEmail] = useState("");
   const [PW, setPW] = useState("");
+  const [checkingServer, setCheckingServer] = useState(true);
+
+  // ✅ CHECK SERVER ALIVE
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        await axios.get("/health");
+        setCheckingServer(false);
+      } catch (error) {
+        console.error("Server không phản hồi:", error);
+        navigate("/404");
+      }
+    };
+
+    checkServer();
+  }, [navigate]);
+
+  if (checkingServer) {
+    return (
+      <div style={{ textAlign: "center", marginTop: "100px" }}>
+        Checking server...
+      </div>
+    );
+  }
 
   const handleSubmit = async () => {
-    if (isLogin) {
-      const res = await fetch(
-        `${import.meta.env.VITE_BK_URL}/api/users/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ Email, PW })
-        }
-      );
+    try {
+      if (isLogin) {
+        const res = await axios.post("/api/users/login", {
+          Email,
+          PW
+        });
 
-      if (!res.ok) {
-        alert("Login failed");
-        return;
+        const data = res.data;
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("userId", data.userId);
+
+        navigate("/home");
+      } else {
+        await axios.post("/api/users/signup", {
+          name,
+          email: Email,
+          password: PW
+        });
+
+        alert("Account created. Please login.");
+        setIsLogin(true);
       }
-
-      const data = await res.json();
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.username);
-      localStorage.setItem("userId", data.userId);
-
-      navigate("/home");
-    } else {
-      const res = await fetch(
-        `${import.meta.env.VITE_BK_URL}/api/users/signup`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name,
-            email: Email,
-            password: PW
-          })
-        }
-      );
-
-      if (!res.ok) {
-        alert("Signup failed");
-        return;
-      }
-
-      alert("Account created. Please login.");
-      setIsLogin(true);
+    } catch (error) {
+      console.error(error);
+      alert(isLogin ? "Login failed" : "Signup failed");
     }
   };
 
