@@ -587,3 +587,22 @@ body {
 .time {
   opacity: 0.7;
 }
+
+.my-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+}
+
+/* nút edit tên */
+.edit-name-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  opacity: 0;
+}
+
+.edit-name-btn.action-btn:hover{
+  opacity: 1;
+}

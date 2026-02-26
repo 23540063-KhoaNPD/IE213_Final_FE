@@ -20,6 +20,8 @@ const Home = () => {
         navigate("/");
     };
 
+    const backendURL = import.meta.env.VITE_BK_URL || "http://localhost:8080";
+
     const [socket, setSocket] = useState(null);
     const [rooms, setRooms] = useState([]);
     const [currentRoom, setCurrentRoom] = useState(null);
@@ -31,6 +33,7 @@ const Home = () => {
     const [myId, setMyId] = useState(null);
     const [myName, setMyName] = useState("");
     const [previewImage, setPreviewImage] = useState(null);
+    const [isPrivateRoom, setIsPrivateRoom] = useState(false);
 
     const checkIfNearBottom = () => {
         const el = messagesRef.current;
@@ -41,6 +44,51 @@ const Home = () => {
             el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 
         shouldAutoScroll.current = isNearBottom;
+    };
+
+    const updateName = async () => {
+        const newName = prompt("Enter new name:", myName);
+        if (!newName || !newName.trim()) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                logout();
+                return;
+            }
+
+            const res = await fetch(
+                `${import.meta.env.VITE_BK_URL}/api/users/update-name`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`  // 🔥 QUAN TRỌNG
+                    },
+                    body: JSON.stringify({
+                        name: newName.trim()
+                    })
+                }
+            );
+
+            if (res.status === 401) {
+                // logout();
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data.name) {
+                setMyName(data.name);
+
+                if (socket) {
+                    socket.emit("update_name", { name: data.name });
+                }
+            }
+
+        } catch (err) {
+            console.error("Update name failed:", err);
+        }
     };
 
     /* ================= JWT ================= */
@@ -141,6 +189,21 @@ const Home = () => {
         //         localStorage.setItem("avatar", profile.avatar);
         //     }
         // });
+
+        newSocket.on("name_updated", ({ userId, name }) => {
+
+            if (String(userId) === String(myId)) {
+                setMyName(name);
+            }
+
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    String(msg.Sender_id) === String(userId)
+                        ? { ...msg, Sender_name: name }
+                        : msg
+                )
+            );
+        });
 
         newSocket.on("avatar_updated", ({ userId, avatar }) => {
             if (String(userId) === String(myId)) {
@@ -582,10 +645,14 @@ const Home = () => {
 
                     <div className="profile">
 
-                        <span>
-
+                        <span className="my-name">
+                            <button
+                                className="edit-name-btn action-btn edit"
+                                onClick={updateName}
+                            >
+                                ✎
+                            </button>
                             {myName}
-
                         </span>
 
                         <label>
