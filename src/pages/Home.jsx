@@ -15,8 +15,13 @@ const Home = () => {
     // const shouldAutoScroll = useRef(true);
 
     const logout = () => {
+        if (socket) {
+            socket.disconnect();
+        }
+
         localStorage.removeItem("token");
         localStorage.removeItem("avatar");
+
         navigate("/");
     };
 
@@ -600,196 +605,115 @@ const Home = () => {
 
             <div className="sidebar">
 
-                <div className="sidebar-header">
-                    Chats
+                {/* ===== HEADER ===== */}
+                <div className="sidebar-top">
+                    <div className="sidebar-title">Chats</div>
+
+                    <button
+                        className="create-btn"
+                        onClick={() => setShowCreate(!showCreate)}
+                    >
+                        ＋
+                    </button>
                 </div>
 
-                {showUsers && (
-                    <div className="direct-section">
-                        <div className="direct-title">Direct Messages</div>
+                {/* ===== CREATE ROOM ===== */}
+                {showCreate && (
+                    <div className="create-room-card">
+                        <input
+                            placeholder="Room name..."
+                            value={newRoomName}
+                            onChange={(e) => setNewRoomName(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && createRoom()}
+                        />
 
-                        {users.map(user => (
-                            <div
-                                key={user._id}
-                                className="direct-user"
-                                onClick={() => createDirectRoom(user._id)}
-                            >
-                                <img
-                                    src={user.Avatar || DEFAULT_AVATAR}
-                                    className="direct-avatar"
+                        <label className="private-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={isPrivateRoom}
+                                onChange={(e) => setIsPrivateRoom(e.target.checked)}
+                            />
+                            Private 🔒
+                        </label>
+
+                        {isPrivateRoom && (
+                            <div className="email-search-box">
+                                <input
+                                    type="email"
+                                    placeholder="Search by email..."
+                                    value={emailInput}
+                                    onChange={(e) => setEmailInput(e.target.value)}
                                 />
-                                {user.Username}
-                            </div>
-                        ))}
+                                <button
+                                    onClick={() =>
+                                        socket.emit("find_user_by_email", {
+                                            email: emailInput.trim()
+                                        })
+                                    }
+                                >
+                                    Find
+                                </button>
 
+                                {foundUser && (
+                                    <div className="found-user">
+                                        {foundUser.Username}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <button className="create-confirm" onClick={createRoom}>
+                            Create Room
+                        </button>
                     </div>
                 )}
 
-                <div
-                    className="create-room"
-                    onClick={() => setShowCreate(!showCreate)}
-                >
-                    + Create Room
-                </div>
+                {/* ===== ROOM LIST ===== */}
+                <div className="room-list">
+                    {rooms.map(room => (
+                        <div
+                            key={room._id}
+                            className={`room-item ${currentRoom?._id === room._id ? "active" : ""}`}
+                            onClick={() => joinRoom(room)}
+                        >
+                            <div className="room-avatar">
+                                <img
+                                    src={
+                                        room.room_bg &&
+                                            (room.room_bg.startsWith("http") ||
+                                                room.room_bg.startsWith("/"))
+                                            ? room.room_bg
+                                            : DEFAULT_AVATAR
+                                    }
+                                    alt="room"
+                                    onError={(e) => (e.target.src = DEFAULT_AVATAR)}
+                                />
+                            </div>
 
-                {showCreate && (
-                    <div className="create-room-modal">
-                        <div className="create-room-card">
+                            <div className="room-info">
+                                <div className="room-name">
+                                    {room.Room_name}
 
-                            {isPrivateRoom && (
-                                <div className="email-search-box">
-                                    <input
-                                        type="email"
-                                        placeholder="Enter user email..."
-                                        value={emailInput}
-                                        onChange={(e) => setEmailInput(e.target.value)}
-                                    />
-
-                                    <button
-                                        onClick={() => {
-                                            if (!emailInput.trim()) return;
-                                            socket.emit("find_user_by_email", {
-                                                email: emailInput.trim()
-                                            });
-                                        }}
-                                    >
-                                        Find
-                                    </button>
-
-                                    {foundUser && (
-                                        <div className="found-user">
-                                            ✅ {foundUser.Username} ({foundUser.Email})
-                                        </div>
+                                    {unreadRooms[String(room._id)] && (
+                                        <span className="notification-dot"></span>
                                     )}
                                 </div>
-                            )}
-
-                            <input
-                                placeholder="Room name..."
-                                value={newRoomName}
-                                onChange={(e) => setNewRoomName(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && createRoom()}
-                            />
-
-                            <label className="private-checkbox">
-                                <input
-                                    type="checkbox"
-                                    checked={isPrivateRoom}
-                                    onChange={(e) => setIsPrivateRoom(e.target.checked)}
-                                />
-                                Private room 🔒
-                            </label>
-
-                            <button onClick={createRoom}>
-                                Create
-                            </button>
-
-                        </div>
-                    </div>
-
-                )}
-
-                <div className="room-list">
-
-                    {rooms.map(room => {
-
-                        const isImage =
-                            room.room_bg &&
-                            (room.room_bg.startsWith("http")
-                                || room.room_bg.startsWith("/"));
-
-                        const style = isImage
-                            ? {
-                                backgroundImage: `url(${room.room_bg})`,
-                                backgroundSize: "cover"
-                            }
-                            : {
-                                backgroundColor:
-                                    room.room_bg || "#0084ff"
-                            };
-
-                        console.log(
-                            "ROOM CHECK:",
-                            String(room._id),
-                            unreadRooms[String(room._id)]
-                        );
-
-                        return (
-
-                            <div
-                                key={room._id}
-                                className={`room-item ${currentRoom?._id === room._id ? "active" : ""
-                                    }`}
-                                onClick={() => joinRoom(room)}
-                            >
-
-
-                                <div className="room-avatar">
-
-                                    <img
-                                        src={
-                                            room.room_bg &&
-                                                (room.room_bg.startsWith("http") ||
-                                                    room.room_bg.startsWith("/"))
-                                                ? room.room_bg
-                                                : DEFAULT_AVATAR
-                                        }
-                                    />
-
-                                </div>
-
-                                <div className="room-info">
-
-                                    <div className="room-name">
-                                        {room.Room_name}
-
-
-
-                                        {
-                                            unreadRooms[String(room._id)] && (
-                                                <span className="notification-dot"></span>
-                                            )}
-
-                                        {room.isPrivate && <span className="private-badge"> 🔒 </span>}
-                                    </div>
-
-                                    <div className="room-actions">
-
-                                        <div className="room-actions">
-                                            <button
-                                                className="action-btn edit"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    updateRoom(room);
-                                                }}
-                                            >
-                                                ✎
-                                            </button>
-
-                                            <button
-                                                className="action-btn delete"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    deleteRoom(room._id);
-                                                }}
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-
-                                    </div>
-
-                                </div>
                             </div>
+                        </div>
+                    ))}
+                </div>
 
-                        );
-
-                    })}
-
+                {/* ===== FOOTER PROFILE ===== */}
+                <div className="sidebar-footer">
+                    <div className="profile-box" onClick={logout}>
+                        <img src={myAvatar} className="profile-avatar" />
+                        <div className="profile-name">{myName}</div>
+                        
+                        <div className="logout-icon"><p>Log out</p></div>
+                    </div>
                 </div>
 
             </div>
-
 
 
             {/* ===== CHAT ===== */}
