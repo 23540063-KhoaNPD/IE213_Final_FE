@@ -675,7 +675,7 @@ body {
   animation: fadeIn 0.2s ease-in-out;
 }
 
-.create-room-card {
+/* .create-room-card {
   background: #f3c3c3;
   padding: 16px;
   border-radius: 12px;
@@ -684,11 +684,11 @@ body {
   gap: 12px;
   box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(177, 70, 70, 0.05);
-}
+} */
 
 /* INPUT */
 
-.create-room-card input {
+/* .create-room-card input {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #ddbcbc;
@@ -697,21 +697,21 @@ body {
   font-size: 14px;
   outline: none;
   transition: 0.2s;
-}
+} */
 
-.create-room-card input:focus {
+/* .create-room-card input:focus {
   border-color: #0084ff;
   box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
-}
+} */
 
 /* PRIVATE CHECKBOX */
-
 .private-checkbox {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
   cursor: pointer;
+  color: white;
 }
 
 .private-checkbox input {
@@ -750,8 +750,8 @@ body {
 }
 
 .found-user {
-  font-size: 13px;
-  color: #4caf50;
+  font-size: 19px;
+  color: #0aaee0;
 }
 
 /* Animation */
