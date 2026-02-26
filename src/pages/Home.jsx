@@ -12,7 +12,7 @@ const Home = () => {
     const bottomRef = useRef(null);
 
     const messagesRef = useRef(null);
-    const shouldAutoScroll = useRef(true);
+    // const shouldAutoScroll = useRef(true);
 
     const logout = () => {
         localStorage.removeItem("token");
@@ -34,6 +34,15 @@ const Home = () => {
     const [myName, setMyName] = useState("");
     const [previewImage, setPreviewImage] = useState(null);
     const [isPrivateRoom, setIsPrivateRoom] = useState(false);
+    const [users, setUsers] = useState([]);
+    const [selectedUserId, setSelectedUserId] = useState(null);
+    const [showUsers, setShowUsers] = useState(false);
+    const [emailInput, setEmailInput] = useState("");
+    const [foundUser, setFoundUser] = useState(null);
+    const [unreadRooms, setUnreadRooms] = useState({});
+
+    const currentRoomRef = useRef(null);
+    const unreadRoomsRef = useRef({});
 
     const checkIfNearBottom = () => {
         const el = messagesRef.current;
@@ -43,12 +52,20 @@ const Home = () => {
         const isNearBottom =
             el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 
-        shouldAutoScroll.current = isNearBottom;
+        // shouldAutoScroll.current = isNearBottom;
+    };
+
+    const createDirectRoom = (targetUserId) => {
+        if (!socket) return;
+
+        socket.emit("create_direct_room", { targetUserId });
     };
 
     const updateName = async () => {
         const newName = prompt("Enter new name:", myName);
         if (!newName || !newName.trim()) return;
+
+        const trimmedName = newName.trim();
 
         try {
             const token = localStorage.getItem("token");
@@ -63,27 +80,22 @@ const Home = () => {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`  // 🔥 QUAN TRỌNG
+                        Authorization: `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        name: newName.trim()
+                        name: trimmedName
                     })
                 }
             );
 
-            if (res.status === 401) {
-                // logout();
-                return;
-            }
+            if (res.status === 401) return;
 
-            const data = await res.json();
+            // 🔥 SET NGAY TÊN MỚI
+            setMyName(trimmedName);
 
-            if (data.name) {
-                setMyName(data.name);
-
-                if (socket) {
-                    socket.emit("update_name", { name: data.name });
-                }
+            // 🔥 EMIT TÊN MỚI
+            if (socket) {
+                socket.emit("update_name", { name: trimmedName });
             }
 
         } catch (err) {
@@ -118,6 +130,14 @@ const Home = () => {
     }
 
     useEffect(() => {
+        currentRoomRef.current = currentRoom;
+    }, [currentRoom]);
+
+    useEffect(() => {
+        unreadRoomsRef.current = unreadRooms;
+    }, [unreadRooms]);
+
+    useEffect(() => {
         const el = messagesRef.current;
         if (!el) return;
 
@@ -145,7 +165,6 @@ const Home = () => {
 
         const decoded = parseJwt(token);
         setMyId(decoded?.userId);
-        setMyName(decoded?.username || "User");
 
         const newSocket = io(
             import.meta.env.VITE_BK_URL || "http://localhost:8080",
@@ -158,18 +177,37 @@ const Home = () => {
             }
         });
 
+        newSocket.on("direct_room_ready", (room) => {
+            setCurrentRoom(room);
+            setMessages([]);
+            newSocket.emit("join_room", room._id);
+        });
+
         newSocket.on("my_profile", (profile) => {
             if (profile?.avatar) {
                 setMyAvatar(profile.avatar);
                 localStorage.setItem("avatar", profile.avatar);
             }
 
-            if (profile?.name) {
-                setMyName(profile.name);
+            if (profile?.username) {
+                setMyName(profile.username);
             }
         });
 
         newSocket.emit("get_rooms");
+
+        newSocket.emit("get_users");
+
+        newSocket.on("user_list", (data) => {
+            const decoded = parseJwt(localStorage.getItem("token"));
+            const currentUserId = decoded?.userId;
+
+            // console.log("USER LIST FROM SERVER:", data);
+
+            setUsers(
+                data.filter(u => String(u._id) !== String(currentUserId))
+            );
+        });
 
         newSocket.on("room_list", (data) => {
             setRooms(data);
@@ -180,7 +218,28 @@ const Home = () => {
         });
 
         newSocket.on("receive_msg", (msg) => {
-            setMessages((prev) => [...prev, msg]);
+
+            const roomId = String(msg.Room_id);
+            const currentId = String(currentRoomRef.current?._id);
+
+            console.log("MSG ROOM:", roomId);
+            console.log("CURRENT ROOM:", currentId);
+            console.log("UNREAD BEFORE:", unreadRoomsRef.current);
+
+            if (roomId === currentId) {
+                setMessages(prev => [...prev, msg]);
+            } else {
+                setUnreadRooms(prev => {
+                    const updated = {
+                        ...prev,
+                        [roomId]: true
+                    };
+
+                    unreadRoomsRef.current = updated; // sync ngay lập tức
+                    return updated;
+                });
+            }
+
         });
 
         // newSocket.on("my_profile", (profile) => {
@@ -189,6 +248,10 @@ const Home = () => {
         //         localStorage.setItem("avatar", profile.avatar);
         //     }
         // });
+
+        newSocket.on("room_created", (room) => {
+            setRooms(prev => [...prev, room]);
+        });
 
         newSocket.on("name_updated", ({ userId, name }) => {
 
@@ -238,6 +301,15 @@ const Home = () => {
             );
         });
 
+        newSocket.on("user_found", (user) => {
+            setFoundUser(user);
+        });
+
+        newSocket.on("user_not_found", () => {
+            alert("User not found");
+            setFoundUser(null);
+        });
+
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [navigate]);
@@ -253,13 +325,11 @@ const Home = () => {
 
     /* ================= AUTO SCROLL ================= */
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         const el = messagesRef.current;
         if (!el) return;
 
-        if (shouldAutoScroll.current) {
-            el.scrollTop = el.scrollHeight;
-        }
+        el.scrollTop = el.scrollHeight;
     }, [messages]);
 
 
@@ -268,15 +338,40 @@ const Home = () => {
 
     const joinRoom = (room) => {
         if (!socket) return;
+
         setCurrentRoom(room);
+        currentRoomRef.current = room;   // ✅ QUAN TRỌNG
+
         setMessages([]);
+
         socket.emit("join_room", room._id);
+
+        setUnreadRooms(prev => {
+            const updated = { ...prev };
+            delete updated[String(room._id)];
+            unreadRoomsRef.current = updated;  // ✅ sync ngay
+            return updated;
+        });
     };
 
     const createRoom = () => {
         if (!newRoomName.trim() || !socket) return;
-        socket.emit("create_room", { roomName: newRoomName });
+
+        if (isPrivateRoom && !foundUser) {
+            alert("Please search and select a user");
+            return;
+        }
+
+        socket.emit("create_room", {
+            roomName: newRoomName.trim(),
+            isPrivate: isPrivateRoom,
+            targetUserId: foundUser?._id
+        });
+
         setNewRoomName("");
+        setEmailInput("");
+        setFoundUser(null);
+        setIsPrivateRoom(false);
         setShowCreate(false);
     };
 
@@ -506,10 +601,29 @@ const Home = () => {
             <div className="sidebar">
 
                 <div className="sidebar-header">
-
                     Chats
-
                 </div>
+
+                {showUsers && (
+                    <div className="direct-section">
+                        <div className="direct-title">Direct Messages</div>
+
+                        {users.map(user => (
+                            <div
+                                key={user._id}
+                                className="direct-user"
+                                onClick={() => createDirectRoom(user._id)}
+                            >
+                                <img
+                                    src={user.Avatar || DEFAULT_AVATAR}
+                                    className="direct-avatar"
+                                />
+                                {user.Username}
+                            </div>
+                        ))}
+
+                    </div>
+                )}
 
                 <div
                     className="create-room"
@@ -519,20 +633,58 @@ const Home = () => {
                 </div>
 
                 {showCreate && (
+                    <div className="create-room-modal">
+                        <div className="create-room-card">
 
-                    <div className="create-room-box">
+                            {isPrivateRoom && (
+                                <div className="email-search-box">
+                                    <input
+                                        type="email"
+                                        placeholder="Enter user email..."
+                                        value={emailInput}
+                                        onChange={(e) => setEmailInput(e.target.value)}
+                                    />
 
-                        <input
-                            placeholder="Room name..."
-                            value={newRoomName}
-                            onChange={(e) => setNewRoomName(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && createRoom()}
-                        />
+                                    <button
+                                        onClick={() => {
+                                            if (!emailInput.trim()) return;
+                                            socket.emit("find_user_by_email", {
+                                                email: emailInput.trim()
+                                            });
+                                        }}
+                                    >
+                                        Find
+                                    </button>
 
-                        <button onClick={createRoom}>
-                            Create
-                        </button>
+                                    {foundUser && (
+                                        <div className="found-user">
+                                            ✅ {foundUser.Username} ({foundUser.Email})
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
+                            <input
+                                placeholder="Room name..."
+                                value={newRoomName}
+                                onChange={(e) => setNewRoomName(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && createRoom()}
+                            />
+
+                            <label className="private-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={isPrivateRoom}
+                                    onChange={(e) => setIsPrivateRoom(e.target.checked)}
+                                />
+                                Private room 🔒
+                            </label>
+
+                            <button onClick={createRoom}>
+                                Create
+                            </button>
+
+                        </div>
                     </div>
 
                 )}
@@ -555,6 +707,12 @@ const Home = () => {
                                 backgroundColor:
                                     room.room_bg || "#0084ff"
                             };
+
+                        console.log(
+                            "ROOM CHECK:",
+                            String(room._id),
+                            unreadRooms[String(room._id)]
+                        );
 
                         return (
 
@@ -583,9 +741,16 @@ const Home = () => {
                                 <div className="room-info">
 
                                     <div className="room-name">
-
                                         {room.Room_name}
 
+
+
+                                        {
+                                            unreadRooms[String(room._id)] && (
+                                                <span className="notification-dot"></span>
+                                            )}
+
+                                        {room.isPrivate && <span className="private-badge"> 🔒 </span>}
                                     </div>
 
                                     <div className="room-actions">

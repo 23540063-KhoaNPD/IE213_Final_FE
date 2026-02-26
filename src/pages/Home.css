@@ -606,3 +606,146 @@ body {
 .edit-name-btn.action-btn:hover{
   opacity: 1;
 }
+
+.private-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  margin: 6px 0;
+}
+
+.private-badge {
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+.direct-section {
+  margin-top: 20px;
+}
+
+.direct-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.direct-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.direct-user:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.direct-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+}
+
+.notification-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: red;
+    border-radius: 50%;
+    margin-left: 6px;
+}
+
+/* ===== CREATE ROOM MODAL ===== */
+
+.create-room-modal {
+    margin: 10px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.create-room-card {
+    background: #f3c3c3;
+    padding: 16px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(177, 70, 70, 0.05);
+}
+
+/* INPUT */
+
+.create-room-card input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddbcbc;
+    background: #057185;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: 0.2s;
+}
+
+.create-room-card input:focus {
+    border-color: #0084ff;
+    box-shadow: 0 0 0 2px rgba(0,132,255,0.2);
+}
+
+/* PRIVATE CHECKBOX */
+
+.private-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.private-checkbox input {
+    accent-color: #0084ff;
+    cursor: pointer;
+}
+
+/* BUTTON */
+
+.create-room-card button {
+    background: linear-gradient(135deg, #0084ff, #0056d6);
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.create-room-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,132,255,0.4);
+}
+
+/* EMAIL SEARCH */
+
+.email-search-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.email-search-box button {
+    background: #444;
+}
+
+.found-user {
+    font-size: 13px;
+    color: #4caf50;
+}
+
+/* Animation */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
