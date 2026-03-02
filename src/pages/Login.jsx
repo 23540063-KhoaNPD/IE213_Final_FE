@@ -11,6 +11,7 @@ export default function Login() {
   const [Email, setEmail] = useState("");
   const [PW, setPW] = useState("");
   const [checkingServer, setCheckingServer] = useState(true);
+  const [error, setError] = useState("");
 
   const backendUrl =
     import.meta.env.VITE_BK_URL || "http://localhost:8080";
@@ -39,35 +40,51 @@ export default function Login() {
   }
 
   const handleSubmit = async () => {
-    try {
-      if (isLogin) {
-        const res = await axios.post("/api/users/login", {
-          Email,
-          PW
-        });
+  try {
+    setError("");
 
-        const data = res.data;
+    if (isLogin) {
+      const res = await axios.post("/api/users/login", {
+        Email,
+        PW
+      });
 
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("userId", data.userId);
+      const data = res.data;
 
-        navigate("/home");
-      } else {
-        await axios.post("/api/users/signup", {
-          name,
-          email: Email,
-          password: PW
-        });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("userId", data.userId);
 
-        alert("Account created. Please login.");
-        setIsLogin(true);
-      }
-    } catch (error) {
-      console.error(error);
-      alert(isLogin ? "Login failed" : "Signup failed");
+      navigate("/home");
+
+    } else {
+      await axios.post("/api/users/signup", {
+        name,
+        email: Email,
+        password: PW
+      });
+
+      setIsLogin(true);
+      setError("Account created. Please login.");
     }
-  };
+
+  } catch (error) {
+    console.error(error);
+
+    // ✅ Nếu có response từ server
+    if (error.response) {
+      if (error.response.status === 409) {
+        setError("Email has already been registered.");
+      } else if (error.response.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError(isLogin ? "Login failed" : "Signup failed");
+      }
+    } else {
+      setError("Server not responding.");
+    }
+  }
+};
 
   return (
     <div className="auth-container">
@@ -103,6 +120,8 @@ export default function Login() {
         <button className="auth-button" onClick={handleSubmit}>
           {isLogin ? "Login" : "Sign Up"}
         </button>
+
+        {error && <div className="auth-error">{error}</div>}
 
         {isLogin && (
           <div

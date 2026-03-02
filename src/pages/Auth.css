@@ -68,3 +68,9 @@ body {
 .auth-link:hover {
   text-decoration: underline;
 }
+
+.auth-error {
+  color: red;
+  margin-top: 10px;
+  font-size: 14px;
+}
