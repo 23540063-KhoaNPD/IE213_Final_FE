@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
 import { useLayoutEffect } from "react";
 
@@ -45,6 +46,7 @@ const Home = () => {
     const [emailInput, setEmailInput] = useState("");
     const [foundUser, setFoundUser] = useState(null);
     const [unreadRooms, setUnreadRooms] = useState({});
+
 
     const currentRoomRef = useRef(null);
     const unreadRoomsRef = useRef({});
@@ -671,6 +673,9 @@ const Home = () => {
                 {/* ===== ROOM LIST ===== */}
                 <div className="room-list">
                     {rooms.map(room => (
+
+                        console.log("ROOM OBJECT:", room),
+
                         <div
                             key={room._id}
                             className={`room-item ${currentRoom?._id === room._id ? "active" : ""}`}
@@ -691,6 +696,7 @@ const Home = () => {
                             </div>
 
                             <div className="room-info">
+
                                 <div className="room-name">
                                     {room.Room_name}
 
@@ -698,6 +704,34 @@ const Home = () => {
                                         <span className="notification-dot"></span>
                                     )}
                                 </div>
+
+                                {/* chỉ creator thấy icon */}
+                                {String(room.Creator) === String(myId) && (
+                                    <div className="room-actions">
+
+                                        <button
+                                            className="room-action-btn edit"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateRoom(room);
+                                            }}
+                                        >
+                                            <FaEdit />
+                                        </button>
+
+                                        <button
+                                            className="room-action-btn delete"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteRoom(room._id);
+                                            }}
+                                        >
+                                            <FaTrash />
+                                        </button>
+
+                                    </div>
+                                )}
+
                             </div>
                         </div>
                     ))}
@@ -708,7 +742,7 @@ const Home = () => {
                     <div className="profile-box" onClick={logout}>
                         <img src={myAvatar} className="profile-avatar" />
                         <div className="profile-name">{myName}</div>
-                        
+
                         <div className="logout-icon"><p>Log out</p></div>
                     </div>
                 </div>
@@ -734,15 +768,20 @@ const Home = () => {
 
                     <div className="profile">
 
-                        <span className="my-name">
+                        <div className="my-name">
+
                             <button
                                 className="edit-name-btn action-btn edit"
                                 onClick={updateName}
                             >
                                 ✎
                             </button>
-                            {myName}
-                        </span>
+
+                            <span className="username">
+                                {myName}
+                            </span>
+
+                        </div>
 
                         <label>
 

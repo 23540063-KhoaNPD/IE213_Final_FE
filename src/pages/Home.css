@@ -1,812 +1,32 @@
+/* ========================= */
+/* ===== GLOBAL ============ */
+/* ========================= */
+
 body {
-
   margin: 0;
-
-  font-family:
-    Segoe UI,
-    system-ui;
-
+  font-family: Segoe UI, system-ui;
 }
-
-
-/* ===== MAIN ===== */
 
 .messenger-layout {
-
   display: flex;
-
   height: 100vh;
-
   background: #f0f2f5;
-
-}
-
-
-/* ===== SIDEBAR ===== */
-
-.sidebar {
-
-  width: 340px;
-
-  background: white;
-
-  border-right: 1px solid #ddd;
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.sidebar-header {
-
-  padding: 18px;
-
-  font-size: 24px;
-
-  font-weight: bold;
-
-}
-
-
-/* CREATE */
-
-.create-room {
-
-  padding: 10px 18px;
-
-  cursor: pointer;
-
-  color: #0084ff;
-
-  font-weight: 600;
-
-}
-
-.create-room:hover {
-
-  background: #f2f2f2;
-
-}
-
-
-/* ROOM LIST */
-
-.room-list {
-
-  overflow: auto;
-
-  flex: 1;
-
-}
-
-
-/* ROOM ITEM */
-
-.room-item {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-  padding: 10px 15px;
-
-  cursor: pointer;
-
-  transition: .2s;
-
-}
-
-.room-item:hover {
-
-  background: #f2f2f2;
-
-}
-
-.room-item.active {
-
-  background: #e7f3ff;
-
-}
-
-
-/* AVATAR */
-
-.room-avatar img {
-
-  width: 50px;
-
-  height: 50px;
-
-  border-radius: 50%;
-
-  object-fit: cover;
-
-}
-
-
-/* ROOM NAME */
-
-.room-name {
-
-  font-weight: 600;
-
-}
-
-
-/* ===== CHAT ===== */
-
-.chat {
-
-  flex: 1;
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-/* HEADER */
-
-.chat-top {
-
-  height: 60px;
-
-  background: white;
-
-  display: flex;
-
-  justify-content: space-between;
-
-  align-items: center;
-
-  padding: 0 20px;
-
-  border-bottom: 1px solid #ddd;
-
-  font-weight: 600;
-
-}
-
-
-/* PROFILE */
-
-.profile {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-}
-
-.avatar {
-
-  width: 40px;
-
-  height: 40px;
-
-  border-radius: 50%;
-
-}
-
-
-/* ===== MESSAGE ===== */
-
-.messages {
-
-  flex: 1;
-
-  overflow: auto;
-
-  padding: 20px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 8px;
-  background: #f0f2f5;
-
-}
-
-.msg-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-  margin-top: 2px;
-  /* tinh chỉnh nhẹ */
-}
-
-/* ===== BUBBLE ===== */
-
-.bubble {
-  position: relative;
-  max-width: 70%;
-  min-width: 60px;
-  padding: 10px 14px;
-  border-radius: 18px;
-  font-size: 14px;
-  word-break: break-word;
-  white-space: pre-wrap;
-}
-
-/* Tin nhắn người khác */
-.bubble.other {
-  background: #e4e6eb;
-  color: #000;
-}
-
-/* Tin nhắn của mình */
-.bubble.me {
-  background: #0084ff;
-  color: white;
-}
-
-
-/* NAME */
-
-.sender {
-
-  font-size: 12px;
-
-  color: #888;
-
-  margin-bottom: 4px;
-
-}
-
-
-/* TIME */
-
-.time {
-
-  font-size: 11px;
-
-  opacity: .6;
-
-  margin-top: 4px;
-
-  text-align: right;
-
-  color: #65676b;
-
-}
-
-
-/* DATE */
-
-.date {
-
-  text-align: center;
-
-  font-size: 12px;
-
-  color: #888;
-
-  margin: 15px 0;
-
-}
-
-
-/* IMAGE */
-
-.msg-img {
-
-  max-width: 250px;
-
-  border-radius: 10px;
-
-  cursor: pointer;
-
-}
-
-
-/* ===== INPUT ===== */
-
-.input-area {
-
-  display: flex;
-
-  gap: 10px;
-
-  padding: 10px;
-
-  background: white;
-
-  border-top: 1px solid #ddd;
-
-}
-
-
-.input-area input {
-
-  flex: 1;
-
-  border: none;
-
-  background: #f0f2f5;
-
-  border-radius: 25px;
-
-  padding: 12px 15px;
-
-  outline: none;
-
-}
-
-
-.input-area button {
-  border: none;
-  background: #0084ff;
-  color: white;
-  border-radius: 50%;
-  width: 40px;
-  cursor: pointer;
-  font-size: 16px;
-
-}
-
-.room-info {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-
-.room-actions {
-  display: flex;
-  gap: 6px;
-  opacity: 0;
-  transition: 0.2s;
-}
-
-/* hover room mới hiện */
-.room-item:hover .room-actions {
-  opacity: 1;
-}
-
-.room-edit,
-.room-delete {
-  cursor: pointer;
-  font-size: 14px;
-  color: #888;
-}
-
-.room-edit:hover {
-  color: #0084ff;
-
-}
-
-.room-delete:hover {
-  color: red;
-
-}
-
-/* FULLSCREEN IMAGE */
-
-.image-modal {
-
-  position: fixed;
-
-  top: 0;
-
-  left: 0;
-
-  width: 100%;
-
-  height: 100%;
-
-  background:
-    rgba(0, 0, 0, .85);
-
-  display: flex;
-
-  justify-content: center;
-
-  align-items: center;
-
-  z-index: 9999;
-
-}
-
-
-/* center */
-.image-modal-content {
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-}
-
-
-/* ảnh */
-
-.image-modal img {
-  max-width: 90vw;
-  max-height: 90vh;
-  object-fit: contain;
-  border-radius: 10px;
-
-}
-
-
-/* close button */
-
-.close-preview {
-  position: absolute;
-  top: -40px;
-  right: 0;
-  background: #0084ff;
-  border: none;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-
-}
-
-.image-upload {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 0 8px;
-  color: #0084ff;
-}
-
-.image-upload:hover {
-  opacity: 0.7;
 }
 
 
 /* ========================= */
-/* ===== MESSAGE ROW ======= */
+/* ===== SIDEBAR =========== */
 /* ========================= */
-
-.message-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.message-row.me {
-  justify-content: flex-end;
-}
-
-.message-row.other {
-  justify-content: flex-start;
-}
-
-/* ========================= */
-/* ===== BUBBLE ============ */
-/* ========================= */
-
-.bubble {
-  position: relative;
-  max-width: 70%;
-  min-width: 60px;
-  padding: 10px 14px;
-  border-radius: 18px;
-  font-size: 14px;
-
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
-}
-
-.bubble.other {
-  background: white;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* .bubble.me {
-  background: #f1f3f5;
-  color: #000;
-  border: 1px solid #e0e0e0;
-} */
-
-
-/* ========================= */
-/* ===== MESSAGE ACTIONS ==== */
-/* ========================= */
-
-/* container icon */
-.message-actions {
-  position: absolute;
-  top: 50%;
-  left: -34px;
-  /* nằm bên trái bubble */
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  opacity: 0;
-  transition: 0.2s ease;
-}
-
-/* hiện icon khi hover message của mình */
-.message-row.me:hover .message-actions {
-  opacity: 1;
-}
-
-/* button chung */
-.action-btn {
-  width: 26px;
-  height: 26px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 13px;
-  transition: all 0.2s ease;
-
-  background: white;
-  color: #333;
-
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* hover scale nhẹ */
-.action-btn:hover {
-  transform: scale(1.15);
-}
-
-/* edit hover */
-.action-btn.edit:hover {
-  background: #00bfff;
-  color: white;
-}
-
-/* delete hover */
-.action-btn.delete:hover {
-  background: #ff4d4f;
-  color: white;
-}
-
-.time {
-  font-size: 11px;
-  color: #888;
-  min-width: 45px;
-}
-
-.time-left {
-  text-align: right;
-}
-
-.time-right {
-  text-align: left;
-}
-
-.time {
-  opacity: 0.7;
-}
-
-.my-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-}
-
-/* nút edit tên */
-.edit-name-btn {
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  opacity: 0;
-}
-
-.edit-name-btn.action-btn:hover {
-  opacity: 1;
-}
-
-.private-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  margin: 6px 0;
-}
-
-.private-badge {
-  margin-left: 6px;
-  font-size: 12px;
-}
-
-.direct-section {
-  margin-top: 20px;
-}
-
-.direct-title {
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.direct-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px;
-  cursor: pointer;
-}
-
-.direct-user:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.direct-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-}
-
-.notification-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background-color: red;
-  border-radius: 50%;
-  margin-left: 6px;
-}
-
-/* ===== CREATE ROOM MODAL ===== */
-
-.create-room-modal {
-  margin: 10px;
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-/* .create-room-card {
-  background: #f3c3c3;
-  padding: 16px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 8px 20px rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(177, 70, 70, 0.05);
-} */
-
-/* INPUT */
-
-/* .create-room-card input {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddbcbc;
-  background: #057185;
-  color: white;
-  font-size: 14px;
-  outline: none;
-  transition: 0.2s;
-} */
-
-/* .create-room-card input:focus {
-  border-color: #0084ff;
-  box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
-} */
-
-/* PRIVATE CHECKBOX */
-.private-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  color: white;
-}
-
-.private-checkbox input {
-  accent-color: #0084ff;
-  cursor: pointer;
-}
-
-/* BUTTON */
-
-.create-room-card button {
-  background: linear-gradient(135deg, #0084ff, #0056d6);
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.create-room-card button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 132, 255, 0.4);
-}
-
-/* EMAIL SEARCH */
-
-.email-search-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.email-search-box button {
-  background: #444;
-}
-
-.found-user {
-  font-size: 19px;
-  color: #0aaee0;
-}
-
-/* Animation */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ===== SIDEBAR FOOTER ===== */
-
-.sidebar-footer {
-  margin-top: auto;
-  padding: 12px;
-  border-top: 1px solid rgb(255, 0, 0);
-}
-
-/* LOGOUT BUTTON */
-
-.logout-btn {
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(135deg, #ff4d4f, #c62828);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.logout-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4);
-}
-
-/* ===== SIDEBAR BASE ===== */
 
 .sidebar {
   width: 300px;
-  background: #ffffff;
+  background: white;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  color: rgb(0, 0, 0);
+  border-right: 1px solid #ddd;
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 
 .sidebar-top {
   display: flex;
@@ -818,22 +38,22 @@ body {
 }
 
 .create-btn {
-  background: #0084ff;
-  border: none;
-  color: white;
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  border: none;
+  background: #0084ff;
+  color: white;
   cursor: pointer;
   font-size: 18px;
-  transition: 0.2s;
+  transition: .2s;
 }
 
 .create-btn:hover {
   transform: scale(1.1);
 }
 
-/* ===== ROOM LIST ===== */
+/* ROOM LIST */
 
 .room-list {
   flex: 1;
@@ -841,22 +61,26 @@ body {
   padding: 8px;
 }
 
+/* ROOM ITEM */
+
 .room-item {
   display: flex;
   gap: 12px;
   padding: 10px;
   border-radius: 10px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: .2s;
 }
 
 .room-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: #f2f2f2;
 }
 
 .room-item.active {
-  background: #0084ff;
+  background: #e7f3ff;
 }
+
+/* AVATAR */
 
 .room-avatar img {
   width: 42px;
@@ -865,23 +89,79 @@ body {
   object-fit: cover;
 }
 
-.room-name {
-  position: relative;
-  font-weight: 500;
+/* ===== ROOM INFO ===== */
+
+.room-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* ===== RED DOT ===== */
+/* ===== ACTION ICON ===== */
+
+.room-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.room-item:hover .room-actions {
+  opacity: 1;
+}
+
+/* ===== BUTTON ===== */
+
+.room-action-btn {
+  width: 24px;
+  height: 24px;
+
+  border: none;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  font-size: 12px;
+
+  background: white;
+  color: #333;
+
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.room-action-btn:hover {
+  transform: scale(1.15);
+}
+
+.room-action-btn.edit:hover {
+  background: #00bfff;
+  color: white;
+}
+
+.room-action-btn.delete:hover {
+  background: #ff4d4f;
+  color: white;
+}
+
+/* NOTIFICATION */
 
 .notification-dot {
-  width: 10px;
-  height: 10px;
-  background: #ff3b30;
+  width: 8px;
+  height: 8px;
+  background: red;
   border-radius: 50%;
   display: inline-block;
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
-/* ===== CREATE CARD ===== */
+
+/* ========================= */
+/* ===== CREATE ROOM ======= */
+/* ========================= */
 
 .create-room-card {
   background: #1c1c1c;
@@ -910,11 +190,32 @@ body {
   cursor: pointer;
 }
 
-/* ===== FOOTER ===== */
+.private-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+}
+
+.email-search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.found-user {
+  font-size: 14px;
+  color: #00bfff;
+}
+
+
+/* ========================= */
+/* ===== SIDEBAR FOOTER ==== */
+/* ========================= */
 
 .sidebar-footer {
   padding: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid #eee;
 }
 
 .profile-box {
@@ -924,12 +225,11 @@ body {
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
-  transition: 0.2s;
-  background: #00000000;
+  transition: .2s;
 }
 
 .profile-box:hover {
-  background: rgb(255, 152, 152);
+  background: #f2f2f2;
 }
 
 .profile-avatar {
@@ -944,8 +244,114 @@ body {
 }
 
 .logout-icon {
-  color: #ff0000;
-  opacity: 0.7;
+  color: red;
+  opacity: .7;
+}
+
+
+/* ========================= */
+/* ===== CHAT ============== */
+/* ========================= */
+
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+
+.chat-top {
+  height: 60px;
+  background: white;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 20px;
+
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+}
+
+/* PROFILE */
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+
+/* ========================= */
+/* ===== MESSAGE AREA ====== */
+/* ========================= */
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ROW */
+
+.message-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.message-row.me {
+  justify-content: flex-end;
+}
+
+.message-row.other {
+  justify-content: flex-start;
+}
+
+/* AVATAR */
+
+.msg-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* BUBBLE */
+
+.bubble {
+  position: relative;
+  max-width: 70%;
+  min-width: 60px;
+
+  padding: 10px 14px;
+  border-radius: 18px;
+
+  font-size: 14px;
+
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.bubble.me {
+  background: #0084ff;
+  color: white;
+}
+
+.bubble.other {
+  background: white;
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
 }
 
 .message-row.me .bubble {
@@ -954,4 +360,218 @@ body {
 
 .message-row.other .bubble {
   border-bottom-left-radius: 4px;
+}
+
+/* SENDER */
+
+.sender {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+/* TIME */
+
+.time {
+  font-size: 11px;
+  color: #888;
+  min-width: 45px;
+}
+
+.time-left {
+  text-align: right;
+}
+
+.time-right {
+  text-align: left;
+}
+
+/* DATE */
+
+.date {
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  margin: 15px 0;
+}
+
+/* IMAGE */
+
+.msg-img {
+  max-width: 250px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+
+/* ========================= */
+/* ===== MESSAGE ACTION ==== */
+/* ========================= */
+
+.message-actions {
+  position: absolute;
+  top: 50%;
+  left: -34px;
+
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  opacity: 0;
+  transition: .2s;
+}
+
+.message-row.me:hover .message-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 26px;
+  height: 26px;
+
+  border: none;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  font-size: 13px;
+
+  background: white;
+  color: #333;
+
+  box-shadow: 0 3px 8px rgba(0,0,0,.15);
+  transition: .2s;
+}
+
+.action-btn:hover {
+  transform: scale(1.15);
+}
+
+.action-btn.edit:hover {
+  background: #00bfff;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #ff4d4f;
+  color: white;
+}
+
+
+/* ========================= */
+/* ===== INPUT ============= */
+/* ========================= */
+
+.input-area {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: white;
+  border-top: 1px solid #ddd;
+}
+
+.input-area input {
+  flex: 1;
+  border: none;
+  background: #f0f2f5;
+  border-radius: 25px;
+  padding: 12px 15px;
+  outline: none;
+}
+
+.input-area button {
+  width: 40px;
+  border: none;
+  border-radius: 50%;
+  background: #0084ff;
+  color: white;
+  cursor: pointer;
+}
+
+.image-upload {
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  color: #0084ff;
+}
+
+
+/* ========================= */
+/* ===== IMAGE PREVIEW ===== */
+/* ========================= */
+
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  background: rgba(0,0,0,.85);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  z-index: 9999;
+}
+
+.image-modal-content {
+  position: relative;
+}
+
+.image-modal img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 10px;
+}
+
+.close-preview {
+  position: absolute;
+  top: -40px;
+  right: 0;
+
+  background: #0084ff;
+  border: none;
+  color: white;
+
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ===== USERNAME ===== */
+
+.my-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* icon sửa */
+
+.edit-name-btn {
+  width: 24px;
+  height: 24px;
+
+  opacity: 0;
+  padding: 0;
+}
+
+/* hover mới hiện icon */
+
+.my-name:hover .edit-name-btn {
+  opacity: 1;
+}
+
+/* username */
+
+.username {
+  font-size: 14px;
 }
