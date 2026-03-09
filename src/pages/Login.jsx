@@ -16,7 +16,7 @@ export default function Login() {
   const backendUrl =
     import.meta.env.VITE_BK_URL || "http://localhost:8080";
 
-  // ✅ CHECK SERVER ALIVE
+  // CHECK SERVER ALIVE
   useEffect(() => {
     const checkServer = async () => {
       try {
@@ -71,7 +71,7 @@ export default function Login() {
   } catch (error) {
     console.error(error);
 
-    // ✅ Nếu có response từ server
+    //  Nếu có response từ server
     if (error.response) {
       if (error.response.status === 409) {
         setError("Email has already been registered.");
