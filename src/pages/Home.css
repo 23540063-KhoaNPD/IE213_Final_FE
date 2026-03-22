@@ -111,6 +111,46 @@ body {
   opacity: 1;
 }
 
+.room-actions {
+    position: relative;
+}
+
+.room-action-btn.menu {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 14px;
+}
+
+/* DROPDOWN */
+.room-dropdown {
+    position: absolute;
+    right: 0;
+    top: 25px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 140px;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.dropdown-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background: #f1f1f1;
+}
+
+.dropdown-item.delete {
+    color: red;
+}
+
 /* ===== BUTTON ===== */
 
 .room-action-btn {
@@ -450,22 +490,27 @@ body {
 .message-actions {
   position: absolute;
   top: 50%;
-  left: -34px;
-
+  left: -35px; 
   transform: translateY(-50%);
+
   display: flex;
   flex-direction: column;
   gap: 6px;
 
   opacity: 0;
-  transition: .2s;
+  pointer-events: none;
+
+  transition: 0.2s;
+  z-index: 10;
 }
 
+/* hover cả row (ổn định hơn bubble) */
 .message-row.me:hover .message-actions {
   opacity: 1;
+  pointer-events: auto;
 }
 
-.action-btn {
+.icon-btn {
   width: 26px;
   height: 26px;
 
@@ -486,16 +531,12 @@ body {
   transition: .2s;
 }
 
-.action-btn:hover {
+.icon-btn:hover {
   transform: scale(1.15);
+  background: #f0f0f0;
 }
 
-.action-btn.edit:hover {
-  background: #00bfff;
-  color: white;
-}
-
-.action-btn.delete:hover {
+.icon-btn.delete:hover {
   background: #ff4d4f;
   color: white;
 }
@@ -614,3 +655,98 @@ body {
 .username {
   font-size: 14px;
 }
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 300px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal .delete {
+    background: red;
+    color: white;
+}
+
+.bubble {
+    position: relative;
+}
+
+
+
+.icon-btn {
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    padding: 5px;
+}
+
+.icon-btn.delete {
+    color: red;
+}
+
+.edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-input {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.save-btn {
+  background: #ffffff;
+  color: rgb(0, 0, 0);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.cancel-btn {
+  background: #ffffff;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.sender {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #555;
+}
+
+
+

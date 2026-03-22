@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaEllipsisV } from "react-icons/fa";
 
 import { useLayoutEffect } from "react";
 
@@ -11,22 +11,39 @@ const DEFAULT_AVATAR = "/default-avatar.png";
 const Home = () => {
     const navigate = useNavigate();
     const bottomRef = useRef(null);
-
     const messagesRef = useRef(null);
-    // const shouldAutoScroll = useRef(true);
 
-    const logout = () => {
-        if (socket) {
-            socket.disconnect();
-        }
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("avatar");
-
-        navigate("/");
-    };
 
     const backendURL = import.meta.env.VITE_BK_URL || "http://localhost:8080";
+
+    const IDLE_TIME = 15 * 60 * 1000; // 15 phút
+
+    const idleTimerRef = useRef(null);
+
+    const resetIdleTimer = () => {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+
+        idleTimerRef.current = setTimeout(() => {
+            console.log("User idle → logout");
+            logout();
+        }, IDLE_TIME);
+    };
+
+    const handleSave = (msg) => {
+        if (!editContent.trim()) return;
+
+        socket.emit("update_message", {
+            messageId: msg._id,
+            newContent: editContent.trim(),
+            roomId: currentRoom._id
+        });
+
+        setEditingMsg(null);
+    };
+
 
     const [socket, setSocket] = useState(null);
     const [rooms, setRooms] = useState([]);
@@ -46,10 +63,134 @@ const Home = () => {
     const [emailInput, setEmailInput] = useState("");
     const [foundUser, setFoundUser] = useState(null);
     const [unreadRooms, setUnreadRooms] = useState({});
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const [editingMsg, setEditingMsg] = useState(null);
+    const [editContent, setEditContent] = useState("");
+    const [deletingMsg, setDeletingMsg] = useState(null);
 
 
     const currentRoomRef = useRef(null);
     const unreadRoomsRef = useRef({});
+
+
+    const logout = () => {
+        if (socket) {
+            socket.disconnect();
+        }
+        localStorage.removeItem("token");
+        localStorage.removeItem("avatar");
+        navigate("/");
+    };
+
+    const startEdit = (msg) => {
+        setEditingMsg(msg);
+
+        const isImage =
+            msg.Type === "Image" ||
+            msg.Content.startsWith("http");
+
+        if (!isImage) {
+            setEditContent(msg.Content);
+        } else {
+            // mở file picker luôn
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append("image", file);
+                formData.append("roomId", currentRoom._id);
+
+                const res = await fetch(
+                    `${import.meta.env.VITE_BK_URL}/api/upload-image`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("token")}`
+                        },
+                        body: formData
+                    }
+                );
+
+                const data = await res.json();
+
+                if (data.imageUrl) {
+                    socket.emit("update_message", {
+                        messageId: msg._id,
+                        newContent: data.imageUrl,
+                        roomId: currentRoom._id
+                    });
+                }
+
+                setEditingMsg(null);
+            };
+
+            input.click();
+        }
+    };
+
+    const renderContent = (msg) => {
+        const isImage =
+            msg.Type === "Image" ||
+            msg.Content.startsWith("http");
+
+        // ===== IMAGE =====
+        if (isImage) {
+            return (
+                <img
+                    src={msg.Content}
+                    className="msg-img"
+                    alt="chat"
+                    onClick={() => setPreviewImage(msg.Content)}
+                />
+            );
+        }
+
+        // ===== TEXT (EDIT MODE) =====
+        if (editingMsg?._id === msg._id) {
+    return (
+        <div className="edit-box">
+            <input
+                className="edit-input"
+                value={editContent}
+                autoFocus
+                onChange={(e) => setEditContent(e.target.value)}
+            />
+
+            <div className="edit-actions">
+                <button
+                    className="save-btn"
+                    onClick={() => {
+                        socket.emit("update_message", {
+                            messageId: msg._id,
+                            newContent: editContent,
+                            roomId: currentRoom._id
+                        });
+                        setEditingMsg(null);
+                    }}
+                >
+                    Save
+                </button>
+
+                <button
+                    className="cancel-btn"
+                    onClick={() => setEditingMsg(null)}
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    );
+}
+
+        // ===== TEXT NORMAL =====
+        return <div className="text-content">{msg.Content}</div>;
+    };
+
 
     const checkIfNearBottom = () => {
         const el = messagesRef.current;
@@ -59,7 +200,6 @@ const Home = () => {
         const isNearBottom =
             el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
 
-        // shouldAutoScroll.current = isNearBottom;
     };
 
     const createDirectRoom = (targetUserId) => {
@@ -97,14 +237,13 @@ const Home = () => {
 
             if (res.status === 401) return;
 
-            // 🔥 SET NGAY TÊN MỚI
+            // SET NGAY TÊN MỚI
             setMyName(trimmedName);
 
-            // 🔥 EMIT TÊN MỚI
+            // EMIT TÊN MỚI
             if (socket) {
                 socket.emit("update_name", { name: trimmedName });
             }
-
         } catch (err) {
             console.error("Update name failed:", err);
         }
@@ -155,6 +294,50 @@ const Home = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const events = ["click", "keydown", "scroll", "mousemove"];
+
+        const handleActivity = () => {
+            resetIdleTimer();
+        };
+
+        events.forEach(event =>
+            window.addEventListener(event, handleActivity)
+        );
+
+        // start timer lần đầu
+        resetIdleTimer();
+
+        return () => {
+            events.forEach(event =>
+                window.removeEventListener(event, handleActivity)
+            );
+            clearTimeout(idleTimerRef.current);
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setOpenMenuId(null);
+        };
+
+        window.addEventListener("click", handleClickOutside);
+
+        return () => window.removeEventListener("click", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const token = localStorage.getItem("token");
+
+            if (!token || !isTokenValid(token)) {
+                logout();
+            }
+        }, 60 * 1000); // mỗi 1 phút
+
+        return () => clearInterval(interval);
+    }, []);
+
     /* ================= SOCKET INIT ================= */
 
     useEffect(() => {
@@ -179,18 +362,21 @@ const Home = () => {
         );
 
         newSocket.on("connect_error", (err) => {
+            resetIdleTimer();
             if (err.message === "Unauthorized") {
                 logout();
             }
         });
 
         newSocket.on("direct_room_ready", (room) => {
+            resetIdleTimer();
             setCurrentRoom(room);
             setMessages([]);
             newSocket.emit("join_room", room._id);
         });
 
         newSocket.on("my_profile", (profile) => {
+            resetIdleTimer();
             if (profile?.avatar) {
                 setMyAvatar(profile.avatar);
                 localStorage.setItem("avatar", profile.avatar);
@@ -206,6 +392,7 @@ const Home = () => {
         newSocket.emit("get_users");
 
         newSocket.on("user_list", (data) => {
+            resetIdleTimer();
             const decoded = parseJwt(localStorage.getItem("token"));
             const currentUserId = decoded?.userId;
 
@@ -217,14 +404,17 @@ const Home = () => {
         });
 
         newSocket.on("room_list", (data) => {
+            resetIdleTimer();
             setRooms(data);
         });
 
         newSocket.on("chat_history", (history) => {
+            resetIdleTimer();
             setMessages(history);
         });
 
         newSocket.on("receive_msg", (msg) => {
+            resetIdleTimer();
 
             const roomId = String(msg.Room_id);
             const currentId = String(currentRoomRef.current?._id);
@@ -257,10 +447,12 @@ const Home = () => {
         // });
 
         newSocket.on("room_created", (room) => {
+            resetIdleTimer();
             setRooms(prev => [...prev, room]);
         });
 
         newSocket.on("name_updated", ({ userId, name }) => {
+            resetIdleTimer();
 
             if (String(userId) === String(myId)) {
                 setMyName(name);
@@ -276,6 +468,7 @@ const Home = () => {
         });
 
         newSocket.on("avatar_updated", ({ userId, avatar }) => {
+            resetIdleTimer();
             if (String(userId) === String(myId)) {
                 setMyAvatar(avatar);
             }
@@ -291,6 +484,7 @@ const Home = () => {
 
         /* ===== MESSAGE UPDATE ===== */
         newSocket.on("message_updated", (updatedMsg) => {
+            resetIdleTimer();
 
             setMessages((prev) =>
                 prev.map((msg) =>
@@ -303,23 +497,39 @@ const Home = () => {
 
         /* ===== MESSAGE DELETE ===== */
         newSocket.on("message_deleted", ({ messageId }) => {
+            resetIdleTimer();
             setMessages((prev) =>
                 prev.filter((msg) => String(msg._id) !== String(messageId))
             );
         });
 
         newSocket.on("user_found", (user) => {
+            resetIdleTimer();
             setFoundUser(user);
         });
 
         newSocket.on("user_not_found", () => {
+            resetIdleTimer();
             alert("User not found");
             setFoundUser(null);
+        });
+
+
+        newSocket.on("room_hidden", ({ roomId }) => {
+            resetIdleTimer();
+            setRooms(prev => prev.filter(r => String(r._id) !== String(roomId)));
+
+            if (String(currentRoomRef.current?._id) === String(roomId)) {
+                setCurrentRoom(null);
+                setMessages([]);
+            }
         });
 
         setSocket(newSocket);
         return () => newSocket.disconnect();
     }, [navigate]);
+
+
 
 
 
@@ -386,6 +596,23 @@ const Home = () => {
         if (!socket) return;
         if (!window.confirm("Delete this room?")) return;
         socket.emit("delete_room", { roomId });
+    };
+
+    const hideRoom = (roomId) => {
+        if (!socket) return;
+
+        socket.emit("hide_room", {
+            roomId
+        });
+
+        // optimistic UI update (hide instantly)
+        setRooms(prev => prev.filter(r => String(r._id) !== String(roomId)));
+
+        // if current room is hidden → reset chat
+        if (String(currentRoom?._id) === String(roomId)) {
+            setCurrentRoom(null);
+            setMessages([]);
+        }
     };
 
     const updateRoom = async (room) => {
@@ -705,32 +932,60 @@ const Home = () => {
                                     )}
                                 </div>
 
-                                {/* chỉ creator thấy icon */}
-                                {String(room.Creator) === String(myId) && (
-                                    <div className="room-actions">
+                                <div className="room-actions">
+                                    <button
+                                        className="room-action-btn menu"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenMenuId(prev => prev === room._id ? null : room._id);
+                                        }}
+                                    >
+                                        <FaEllipsisV />
+                                    </button>
 
-                                        <button
-                                            className="room-action-btn edit"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                updateRoom(room);
-                                            }}
+                                    {openMenuId === room._id && (
+                                        <div
+                                            className="room-dropdown"
+                                            onClick={(e) => e.stopPropagation()}
                                         >
-                                            <FaEdit />
-                                        </button>
+                                            {/* 🔥 HIDE (ALL USERS) */}
+                                            <div
+                                                className="dropdown-item"
+                                                onClick={() => {
+                                                    hideRoom(room._id);
+                                                    setOpenMenuId(null);
+                                                }}
+                                            >
+                                                👁️‍🗨️ Hide chat
+                                            </div>
 
-                                        <button
-                                            className="room-action-btn delete"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                deleteRoom(room._id);
-                                            }}
-                                        >
-                                            <FaTrash />
-                                        </button>
+                                            {/* 🔒 ONLY CREATOR */}
+                                            {String(room.Creator) === String(myId) && (
+                                                <>
+                                                    <div
+                                                        className="dropdown-item"
+                                                        onClick={() => {
+                                                            updateRoom(room);
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                    >
+                                                        ✏️ Edit
+                                                    </div>
 
-                                    </div>
-                                )}
+                                                    <div
+                                                        className="dropdown-item delete"
+                                                        onClick={() => {
+                                                            deleteRoom(room._id);
+                                                            setOpenMenuId(null);
+                                                        }}
+                                                    >
+                                                        🗑 Delete
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
 
                             </div>
                         </div>
@@ -795,13 +1050,9 @@ const Home = () => {
                             />
 
                             <input
-
                                 type="file"
-
                                 hidden
-
                                 accept="image/*"
-
                                 onChange={async (e) => {
 
                                     const file = e.target.files[0];
@@ -813,61 +1064,40 @@ const Home = () => {
                                     formData.append("avatar", file);
 
                                     const res = await fetch(
-
                                         `${import.meta.env.VITE_BK_URL}/api/upload-avatar`,
-
                                         {
-
                                             method: "POST",
-
                                             headers: {
-
-                                                Authorization:
-                                                    `Bearer ${localStorage.getItem("token")}`
-
+                                                Authorization: `Bearer ${localStorage.getItem("token")}`
                                             },
-
                                             body: formData
-
                                         }
-
                                     );
 
                                     const data = await res.json();
 
                                     if (data.avatar) {
-
                                         setMyAvatar(data.avatar);
 
                                         localStorage.setItem(
                                             "avatar",
                                             data.avatar
                                         );
-
                                     }
-
                                 }}
-
                             />
-
                         </label>
-
                     </div>
-
                 </div>
 
-
-
                 {/* ===== MESSAGE AREA ===== */}
-
                 <div className="messages" ref={messagesRef}>
 
                     {messages.map((msg, index) => {
 
                         // console.log("MSG OBJECT:", msg);
 
-                        const previousMsg =
-                            messages[index - 1];
+                        const previousMsg = messages[index - 1];
 
                         const showDate =
                             isDifferentDay(
@@ -875,22 +1105,15 @@ const Home = () => {
                                 previousMsg?.Timestamp
                             );
 
-                        const isMe =
-                            String(msg.Sender_id)
-                            === String(myId);
-
+                        const isMe = String(msg.Sender_id) === String(myId);
                         return (
 
                             <div key={`${msg._id}-${msg.Edited}`}>
 
                                 {showDate && (
-
                                     <div className="date">
-
                                         {formatDate(msg.Timestamp)}
-
                                     </div>
-
                                 )}
 
                                 <div className={`message-row ${isMe ? "me" : "other"}`}>
@@ -917,41 +1140,31 @@ const Home = () => {
 
                                         {!isMe && (
                                             <div className="sender">
-                                                {msg.Sender_name || "User"}
+                                                {msg.Sender_name}
                                             </div>
                                         )}
 
-                                        {msg.Type === "Image" || msg.Content.startsWith("http") ? (
-                                            <img
-                                                src={msg.Content}
-                                                className="msg-img"
-                                                alt="chat"
-                                                onClick={() => setPreviewImage(msg.Content)}
-                                            />
-                                        ) : (
-                                            <div className="text-content">
-                                                {msg.Content}
-                                            </div>
-                                        )}
+                                        {/* CONTENT */}
+                                        {renderContent(msg)}
 
+                                        {/* ACTIONS (hover mới hiện) */}
                                         {isMe && (
-                                            <div className="message-actions">
-                                                <button
-                                                    className="action-btn edit"
-                                                    onClick={() => updateMessage(msg)}
-                                                >
-                                                    ✎
-                                                </button>
+    <div className="message-actions">
+        <button
+            onClick={() => startEdit(msg)}
+            className="icon-btn"
+        >
+            ✏️
+        </button>
 
-                                                <button
-                                                    className="action-btn delete"
-                                                    onClick={() => deleteMessage(msg._id)}
-                                                >
-                                                    ✕
-                                                </button>
-                                            </div>
-                                        )}
-
+        <button
+            onClick={() => setDeletingMsg(msg)}
+            className="icon-btn delete"
+        >
+            🗑
+        </button>
+    </div>
+)}
                                     </div>
 
                                     {/* ===== TIME RIGHT (CHỈ HIỆN VỚI OTHER) ===== */}
@@ -963,17 +1176,11 @@ const Home = () => {
                                             })}
                                         </div>
                                     )}
-
                                 </div>
-
                             </div>
-
                         );
-
                     })}
-
                     <div ref={bottomRef}></div>
-
                 </div>
 
 
@@ -1008,9 +1215,7 @@ const Home = () => {
                         <button onClick={sendMessage}>
                             ➤
                         </button>
-
                     </div>
-
                 )}
 
             </div>
@@ -1018,54 +1223,68 @@ const Home = () => {
 
 
             {/* IMAGE PREVIEW */}
-
             {previewImage && (
 
                 <div
-
                     className="image-modal"
-
                     onClick={() => setPreviewImage(null)}
-
                 >
 
                     <div
-
                         className="image-modal-content"
-
                         onClick={(e) => e.stopPropagation()}
-
                     >
 
                         <img
-
                             src={previewImage}
-
                             alt="preview"
-
                         />
 
                         <button
-
                             className="close-preview"
-
                             onClick={() => setPreviewImage(null)}
 
                         >
-
                             ✕
-
                         </button>
-
                     </div>
-
                 </div>
-
             )}
 
+            {deletingMsg && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <p>Delete this message?</p>
+
+                        <div className="modal-actions">
+                            <button
+                                className="cancel"
+                                onClick={() => setDeletingMsg(null)}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="delete"
+                                onClick={() => {
+                                    socket.emit("delete_message", {
+                                        messageId: deletingMsg._id,
+                                        roomId: currentRoom._id
+                                    });
+                                    setDeletingMsg(null);
+                                }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )
+            }
         </div>
 
-    );
+
+    ); //return
 };
 
 export default Home;
