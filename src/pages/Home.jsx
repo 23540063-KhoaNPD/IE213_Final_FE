@@ -13,8 +13,6 @@ const Home = () => {
     const bottomRef = useRef(null);
     const messagesRef = useRef(null);
 
-
-
     const backendURL = import.meta.env.VITE_BK_URL || "http://localhost:8080";
 
     const IDLE_TIME = 15 * 60 * 1000; // 15 phút
@@ -43,7 +41,6 @@ const Home = () => {
 
         setEditingMsg(null);
     };
-
 
     const [socket, setSocket] = useState(null);
     const [rooms, setRooms] = useState([]);
@@ -152,45 +149,44 @@ const Home = () => {
 
         // ===== TEXT (EDIT MODE) =====
         if (editingMsg?._id === msg._id) {
-    return (
-        <div className="edit-box">
-            <input
-                className="edit-input"
-                value={editContent}
-                autoFocus
-                onChange={(e) => setEditContent(e.target.value)}
-            />
+            return (
+                <div className="edit-box">
+                    <input
+                        className="edit-input"
+                        value={editContent}
+                        autoFocus
+                        onChange={(e) => setEditContent(e.target.value)}
+                    />
 
-            <div className="edit-actions">
-                <button
-                    className="save-btn"
-                    onClick={() => {
-                        socket.emit("update_message", {
-                            messageId: msg._id,
-                            newContent: editContent,
-                            roomId: currentRoom._id
-                        });
-                        setEditingMsg(null);
-                    }}
-                >
-                    Save
-                </button>
+                    <div className="edit-actions">
+                        <button
+                            className="save-btn"
+                            onClick={() => {
+                                socket.emit("update_message", {
+                                    messageId: msg._id,
+                                    newContent: editContent,
+                                    roomId: currentRoom._id
+                                });
+                                setEditingMsg(null);
+                            }}
+                        >
+                            Save
+                        </button>
 
-                <button
-                    className="cancel-btn"
-                    onClick={() => setEditingMsg(null)}
-                >
-                    Cancel
-                </button>
-            </div>
-        </div>
-    );
-}
+                        <button
+                            className="cancel-btn"
+                            onClick={() => setEditingMsg(null)}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            );
+        }
 
         // ===== TEXT NORMAL =====
         return <div className="text-content">{msg.Content}</div>;
     };
-
 
     const checkIfNearBottom = () => {
         const el = messagesRef.current;
@@ -250,7 +246,6 @@ const Home = () => {
     };
 
     /* ================= JWT ================= */
-
     function parseJwt(token) {
         try {
             const base64Url = token.split('.')[1];
@@ -529,19 +524,13 @@ const Home = () => {
         return () => newSocket.disconnect();
     }, [navigate]);
 
-
-
-
-
     /* ================= LOAD AVATAR ================= */
-
     useEffect(() => {
         const savedAvatar = localStorage.getItem("avatar");
         if (savedAvatar) setMyAvatar(savedAvatar);
     }, []);
 
     /* ================= AUTO SCROLL ================= */
-
     useEffect(() => {
         const el = messagesRef.current;
         if (!el) return;
@@ -552,7 +541,6 @@ const Home = () => {
 
 
     /* ================= ROOM ================= */
-
     const joinRoom = (room) => {
         if (!socket) return;
 
@@ -831,7 +819,6 @@ const Home = () => {
         <div className="messenger-layout">
 
             {/* ===== SIDEBAR ===== */}
-
             <div className="sidebar">
 
                 {/* ===== HEADER ===== */}
@@ -959,7 +946,7 @@ const Home = () => {
                                                 👁️‍🗨️ Hide chat
                                             </div>
 
-                                            {/* 🔒 ONLY CREATOR */}
+                                            {/* ONLY CREATOR */}
                                             {String(room.Creator) === String(myId) && (
                                                 <>
                                                     <div
@@ -1149,22 +1136,22 @@ const Home = () => {
 
                                         {/* ACTIONS (hover mới hiện) */}
                                         {isMe && (
-    <div className="message-actions">
-        <button
-            onClick={() => startEdit(msg)}
-            className="icon-btn"
-        >
-            ✏️
-        </button>
+                                            <div className="message-actions">
+                                                <button
+                                                    onClick={() => startEdit(msg)}
+                                                    className="icon-btn"
+                                                >
+                                                    ✏️
+                                                </button>
 
-        <button
-            onClick={() => setDeletingMsg(msg)}
-            className="icon-btn delete"
-        >
-            🗑
-        </button>
-    </div>
-)}
+                                                <button
+                                                    onClick={() => setDeletingMsg(msg)}
+                                                    className="icon-btn delete"
+                                                >
+                                                    🗑
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* ===== TIME RIGHT (CHỈ HIỆN VỚI OTHER) ===== */}
@@ -1183,12 +1170,8 @@ const Home = () => {
                     <div ref={bottomRef}></div>
                 </div>
 
-
-
                 {/* ===== INPUT ===== */}
-
                 {currentRoom && (
-
                     <div className="input-area">
 
                         {/* ICON CHỌN ẢNH */}
@@ -1217,10 +1200,7 @@ const Home = () => {
                         </button>
                     </div>
                 )}
-
             </div>
-
-
 
             {/* IMAGE PREVIEW */}
             {previewImage && (
